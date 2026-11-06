@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Out of Our Hands</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">Out of Our Hands</p>
+      <h1>If the designer writes the rules,<br>who authors the form?</h1>
+    </div>
+    <p class="course">ARCH 602 · Make it configurable</p>
+  </header>
+
+  <main>
+    <section class="field" aria-labelledby="field-label">
+      <h2 id="field-label" class="visually-hidden">Evolving field</h2>
+      <canvas id="field" aria-hidden="true"></canvas>
+      <canvas id="sign" aria-label="Cube. Sign on the front face, or turn it. The signature is placed on all six faces."></canvas>
+      <p id="sign-hint" class="sign-hint">Sign on the front face.<br>The name is copied onto all six.</p>
+      <p class="frame-note">Turn to orbit the cube.</p>
+    </section>
+
+    <aside>
+      <p class="deck">Sign on the front face. The same stroke is placed on all six planes. Every mark inside the cube can meet it.</p>
+
+      <section>
+        <h2><span>01</span> Attraction</h2>
+        <p>How tightly the signature sits around its own center.</p>
+        <div class="meter-row">
+          <div class="meter" id="attract-meter" role="meter" aria-label="Attraction from the signature" aria-valuemin="0" aria-valuemax="1"><span></span></div>
+          <output id="attract-out"></output>
+        </div>
+        <p class="source">A gathered name raises it. Marks in reach are pulled onto the stroke.</p>
+      </section>
+
+      <section>
+        <h2><span>02</span> Repulsion</h2>
+        <p>How long the stroke is, including the path inside the letters.</p>
+        <div class="meter-row">
+          <div class="meter" id="repel-meter" role="meter" aria-label="Repulsion from the signature" aria-valuemin="0" aria-valuemax="1"><span></span></div>
+          <output id="repel-out"></output>
+        </div>
+        <p class="source">A long name raises it. Marks that touch the ink are pushed back off the line.</p>
+      </section>
+
+      <section>
+        <h2><span>03</span> Mimicry</h2>
+        <p>How steadily each part of the stroke continues the last.</p>
+        <div class="meter-row">
+          <div class="meter" id="mimic-meter" role="meter" aria-label="Mimicry from the signature" aria-valuemin="0" aria-valuemax="1"><span></span></div>
+          <output id="mimic-out"></output>
+        </div>
+        <p class="source">A smooth heading raises it. Marks follow the direction the stroke was drawn.</p>
+      </section>
+
+      <p id="reading" class="reading" role="status"></p>
+      <p id="measure" class="measure"></p>
+
+      <div class="actions modes">
+        <button id="mode-sign" type="button" aria-pressed="true">Sign</button>
+        <button id="mode-turn" type="button" aria-pressed="false">Turn</button>
+      </div>
+      <div class="actions">
+        <button id="another" type="button">Another beginning</button>
+        <button id="replay" type="button">Replay this beginning</button>
+        <button id="hold" type="button" aria-pressed="false">Hold</button>
+        <button id="clear-sign" type="button">Clear signature</button>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <section>
+      <h2>Decided before you arrive</h2>
+      <ul id="fixed"></ul>
+    </section>
+    <section>
+      <h2>Where the rules come from</h2>
+      <p>Philip Ball, “Pattern Formation in Nature: Physical Constraints and Self-Organising Characteristics,” <cite>Architectural Design</cite> 82, no. 2 (2012), and <cite>The Self-Made Tapestry</cite> (Oxford University Press), on pattern as the result of local constraint rather than an imposed picture. Attraction and repulsion are our reduction of that argument. They are not a model of soap film or of bubble geometry.</p>
+      <p>Sanford Kwinter, “African Genesis (A Presentation),” <cite>Assemblage</cite> 36 (1998): 24–41, on form as the product of interacting processes in time. Mimicry is our reduction: a mark copies the motion beside it, and the heading that results was not chosen as a shape.</p>
+      <p>You sign on one face. We place that stroke on all six, and every mark in the cube can meet it: drawn toward the ink, turned along it, and pushed off it when they touch. Each mark leaves a trail only after it meets the ink, and the trail stays. Twenty seconds after the signature, the marks and the cube leave. What remains is the trail, a form that can be turned and read as a sculpture. Compactness, length, and directional agreement set how strongly, and only once a signature exists. Until you sign, the marks stay evenly spaced and move freely. The cube and the population are ours.</p>
+    </section>
+  </footer>
+
+  <script src="model.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
