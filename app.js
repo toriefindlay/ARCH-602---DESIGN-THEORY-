@@ -9,9 +9,10 @@ const reading = document.querySelector("#reading");
 const measure = document.querySelector("#measure");
 const fixed = document.querySelector("#fixed");
 const holdButton = document.querySelector("#hold");
-const signButton = document.querySelector("#mode-sign");
-const turnButton = document.querySelector("#mode-turn");
 const doneButton = document.querySelector("#sign-done");
+const stepSign = document.querySelector("#step-sign");
+const stepCube = document.querySelector("#step-cube");
+const stepResult = document.querySelector("#step-result");
 const ruleCanvas = document.querySelector("#rule-cube");
 const ruleCtx = ruleCanvas.getContext("2d");
 const ruleCaption = document.querySelector("#rule-caption");
@@ -34,11 +35,27 @@ const FACES = [
   { n: [0, -1, 0], o: [-HALF, -HALF, HALF], u: [1, 0, 0], v: [0, 0, -1] },
 ];
 
-const EDGES = [
-  [-1, -1, -1, 1, -1, -1], [-1, 1, -1, 1, 1, -1], [-1, -1, 1, 1, -1, 1], [-1, 1, 1, 1, 1, 1],
-  [-1, -1, -1, -1, 1, -1], [1, -1, -1, 1, 1, -1], [-1, -1, 1, -1, 1, 1], [1, -1, 1, 1, 1, 1],
-  [-1, -1, -1, -1, -1, 1], [1, -1, -1, 1, -1, 1], [-1, 1, -1, -1, 1, 1], [1, 1, -1, 1, 1, 1],
+const CORNERS = [
+  [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+  [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1],
+].map(([x, y, z]) => ({ x: x * HALF, y: y * HALF, z: z * HALF }));
+
+const EDGE_INDEX = [
+  [0, 1], [3, 2], [4, 5], [7, 6],
+  [0, 3], [1, 2], [4, 7], [5, 6],
+  [0, 4], [1, 5], [3, 7], [2, 6],
 ];
+
+const QUADS = [
+  [4, 5, 6, 7],
+  [1, 0, 3, 2],
+  [5, 1, 2, 6],
+  [0, 4, 7, 3],
+  [3, 2, 6, 7],
+  [4, 5, 1, 0],
+];
+
+let shaping = null;
 
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 let world = null;
@@ -56,6 +73,7 @@ let pitch = 0;
 let cubeYaw = 0.62;
 let cubePitch = 0.42;
 let lastPointer = null;
+let doneTimer = null;
 let metAt = null;
 let settled = false;
 let wrapMesh = null;
@@ -109,9 +127,32 @@ function measureSignature(pts, w, h) {
   };
 }
 
+function liveInput() {
+  const base = strength();
+  return {
+    attract: base.attract || 0,
+    repel: base.repel || 0,
+    mimic: base.mimic || 0,
+    free: !!base.free,
+    preview: !!base.preview,
+    envelope: envelopePlanes(),
+  };
+}
+
 function strength() {
-  if (!signed) return { attract: 0, repel: 0, mimic: 0, free: true };
-  return signed;
+  if (signed) return signed;
+  if (mode === "sign" && points.length > 1) {
+    const scaled = points.map((point) => ({ x: point.u * SIDE, y: point.v * SIDE, break: point.break }));
+    const measured = measureSignature(scaled, SIDE, SIDE);
+    if (measured) return { attract: measured.attract, repel: measured.repel, mimic: measured.mimic, free: false, preview: true };
+  }
+  return { attract: 0, repel: 0, mimic: 0, free: true };
+}
+
+function strokesForModel() {
+  const segments = strokeSegments(points);
+  if (strength().preview) return segments.filter((segment) => segment.face === 0);
+  return segments;
 }
 
 function word(value) {
@@ -243,7 +284,7 @@ function paintRuleCube(attract, repel, mimic) {
 function writeLedger() {
   fixed.innerHTML = [
     `Ours. ${RULES.count} marks, all of them inside the cube. The count is a choice, not a finding.`,
-    `Ours. The cube is ${SIDE} units on a side. Leaving it is not allowed.`,
+    `Ours. The cube begins at ${SIDE} units on a side. A point or a line can be moved, and that shape is the envelope. Leaving it is not allowed.`,
     `Ball. Attraction looks ${RULES.neighborRadius} units out, a local constraint. The distance is ours.`,
     `Ball. Repulsion between marks acts only inside ${RULES.repelRadius} units. The distance is ours.`,
     `Kwinter. Mimicry copies a heading already in motion. How far it looks is ours.`,
@@ -251,7 +292,7 @@ function writeLedger() {
     `Ours. A trail begins only after a mark meets the ink, and the trail stays. Five seconds after the marks meet, the cube leaves. The paths are shown, then shrink-wrapped. That skin is the final form.`,
     `Ours. The signature is copied onto all six faces. Every stroke is followed.`,
     `Ours. A mark travels its stroke to the end. There, the marks on that stroke are drawn to each other.`,
-    `Ours. Until you sign, the marks stay evenly spaced and move freely. The three variables wait.`,
+    `Ours. Until you sign, the marks stay evenly spaced and move freely. As you sign, the plan shows the three rules. Done opens the cube.`,
     "Ours. A beginning is a seeded set of positions and directions. Replay repeats it. Another beginning changes only the start.",
     "Ours. There is no randomness after the start. If the figure surprises you, the rules and the start still determined it.",
   ].map((line) => `<li>${line}</li>`).join("");
@@ -368,11 +409,149 @@ function project(x, y, z) {
 }
 
 function uvToWorld(face, u, v) {
+  const quad = QUADS[face];
+  const a = CORNERS[quad[0]];
+  const b = CORNERS[quad[1]];
+  const c = CORNERS[quad[2]];
+  const d = CORNERS[quad[3]];
+  const bu = 1 - u;
+  const bv = 1 - v;
   return {
-    x: face.o[0] + (face.u[0] * u + face.v[0] * v) * SIDE,
-    y: face.o[1] + (face.u[1] * u + face.v[1] * v) * SIDE,
-    z: face.o[2] + (face.u[2] * u + face.v[2] * v) * SIDE,
+    x: a.x * bu * bv + b.x * u * bv + c.x * u * v + d.x * bu * v,
+    y: a.y * bu * bv + b.y * u * bv + c.y * u * v + d.y * bu * v,
+    z: a.z * bu * bv + b.z * u * bv + c.z * u * v + d.z * bu * v,
   };
+}
+
+function planPoint(u, v) {
+  return { x: (u - 0.5) * SIDE, y: (v - 0.5) * SIDE, z: HALF };
+}
+
+function outward(a, b, c) {
+  const ux = b.x - a.x;
+  const uy = b.y - a.y;
+  const uz = b.z - a.z;
+  const vx = c.x - a.x;
+  const vy = c.y - a.y;
+  const vz = c.z - a.z;
+  const nx = uy * vz - uz * vy;
+  const ny = uz * vx - ux * vz;
+  const nz = ux * vy - uy * vx;
+  const len = Math.hypot(nx, ny, nz) || 1;
+  return { nx: nx / len, ny: ny / len, nz: nz / len };
+}
+
+const FACE_FLIP = [false, false, false, false, true, true];
+
+function quadNormal(q) {
+  const quad = QUADS[q];
+  const a = CORNERS[quad[0]];
+  const b = CORNERS[quad[1]];
+  const d = CORNERS[quad[3]];
+  const n = outward(a, b, d);
+  if (!FACE_FLIP[q]) return n;
+  return { nx: -n.nx, ny: -n.ny, nz: -n.nz };
+}
+
+function envelopePlanes() {
+  const planes = [];
+  for (let q = 0; q < QUADS.length; q++) {
+    const quad = QUADS[q];
+    const tris = [[0, 1, 2], [0, 2, 3]];
+    for (let t = 0; t < tris.length; t++) {
+      const a = CORNERS[quad[tris[t][0]]];
+      const b = CORNERS[quad[tris[t][1]]];
+      const c = CORNERS[quad[tris[t][2]]];
+      let n = outward(a, b, c);
+      if (FACE_FLIP[q]) n = { nx: -n.nx, ny: -n.ny, nz: -n.nz };
+      planes.push({ ax: a.x, ay: a.y, az: a.z, nx: n.nx, ny: n.ny, nz: n.nz });
+    }
+  }
+  return planes;
+}
+
+function envelopeHolds() {
+  let cx = 0;
+  let cy = 0;
+  let cz = 0;
+  for (let i = 0; i < CORNERS.length; i++) {
+    cx += CORNERS[i].x;
+    cy += CORNERS[i].y;
+    cz += CORNERS[i].z;
+  }
+  cx /= CORNERS.length;
+  cy /= CORNERS.length;
+  cz /= CORNERS.length;
+  const planes = envelopePlanes();
+  for (let i = 0; i < planes.length; i++) {
+    const plane = planes[i];
+    const dist = (cx - plane.ax) * plane.nx + (cy - plane.ay) * plane.ny + (cz - plane.az) * plane.nz;
+    if (dist > 4) return false;
+  }
+  for (let i = 0; i < EDGE_INDEX.length; i++) {
+    const a = CORNERS[EDGE_INDEX[i][0]];
+    const b = CORNERS[EDGE_INDEX[i][1]];
+    if (Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) < 36) return false;
+  }
+  return true;
+}
+
+function pointerLocal(event) {
+  const rect = signCanvas.getBoundingClientRect();
+  return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+}
+
+function segmentDistance(px, py, ax, ay, bx, by) {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len = dx * dx + dy * dy || 1;
+  const t = Math.min(1, Math.max(0, ((px - ax) * dx + (py - ay) * dy) / len));
+  return Math.hypot(px - (ax + dx * t), py - (ay + dy * t));
+}
+
+function hitEnvelope(px, py) {
+  let best = null;
+  for (let i = 0; i < CORNERS.length; i++) {
+    const point = project(CORNERS[i].x, CORNERS[i].y, CORNERS[i].z);
+    const dist = Math.hypot(point.x - px, point.y - py);
+    if (dist < 16 && (!best || dist < best.dist)) best = { kind: "point", index: i, dist };
+  }
+  if (best) return best;
+  for (let i = 0; i < EDGE_INDEX.length; i++) {
+    const a = CORNERS[EDGE_INDEX[i][0]];
+    const b = CORNERS[EDGE_INDEX[i][1]];
+    const pa = project(a.x, a.y, a.z);
+    const pb = project(b.x, b.y, b.z);
+    const dist = segmentDistance(px, py, pa.x, pa.y, pb.x, pb.y);
+    if (dist < 10 && (!best || dist < best.dist)) best = { kind: "line", index: i, dist };
+  }
+  return best;
+}
+
+function moveEnvelope(dx, dy) {
+  const ids = shaping.kind === "point"
+    ? [shaping.index]
+    : EDGE_INDEX[shaping.index];
+  let scale = 0;
+  for (let i = 0; i < ids.length; i++) {
+    const corner = CORNERS[ids[i]];
+    scale += project(corner.x, corner.y, corner.z).s;
+  }
+  scale = scale / ids.length || 1;
+  const move = cameraToWorld(dx / scale, -dy / scale, 0);
+  const saved = ids.map((id) => ({ x: CORNERS[id].x, y: CORNERS[id].y, z: CORNERS[id].z }));
+  for (let i = 0; i < ids.length; i++) {
+    CORNERS[ids[i]].x += move.x;
+    CORNERS[ids[i]].y += move.y;
+    CORNERS[ids[i]].z += move.z;
+  }
+  if (!envelopeHolds()) {
+    for (let i = 0; i < ids.length; i++) {
+      CORNERS[ids[i]].x = saved[i].x;
+      CORNERS[ids[i]].y = saved[i].y;
+      CORNERS[ids[i]].z = saved[i].z;
+    }
+  }
 }
 
 function frontFace() {
@@ -445,15 +624,14 @@ function strokeSegments(pts) {
   flush();
 
   const segments = [];
-  for (let face = 0; face < FACES.length; face++) {
-    const plane = FACES[face];
+  for (let face = 0; face < QUADS.length; face++) {
     for (let stroke = 0; stroke < runs.length; stroke++) {
       const samples = runs[stroke];
       const total = samples.reduce((sum, sample) => sum + sample.len, 0) || 1;
       let walked = 0;
       for (const sample of samples) {
-        const a = uvToWorld(plane, sample.u1, sample.v1);
-        const b = uvToWorld(plane, sample.u2, sample.v2);
+        const a = uvToWorld(face, sample.u1, sample.v1);
+        const b = uvToWorld(face, sample.u2, sample.v2);
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const dz = b.z - a.z;
@@ -470,16 +648,6 @@ function strokeSegments(pts) {
   return segments;
 }
 
-function faceCorners(face) {
-  const { o, u, v } = face;
-  return [
-    [o[0], o[1], o[2]],
-    [o[0] + u[0] * SIDE, o[1] + u[1] * SIDE, o[2] + u[2] * SIDE],
-    [o[0] + (u[0] + v[0]) * SIDE, o[1] + (u[1] + v[1]) * SIDE, o[2] + (u[2] + v[2]) * SIDE],
-    [o[0] + v[0] * SIDE, o[1] + v[1] * SIDE, o[2] + v[2] * SIDE],
-  ];
-}
-
 function draw() {
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
@@ -489,10 +657,12 @@ function draw() {
   const cam = cameraToWorld(0, 0, 1);
   if (!settled && mode !== "sign") {
     const walls = [];
-    for (const face of FACES) {
-      const facing = face.n[0] * cam.x + face.n[1] * cam.y + face.n[2] * cam.z;
+    for (let q = 0; q < QUADS.length; q++) {
+      const quad = QUADS[q];
+      const normal = quadNormal(q);
+      const facing = normal.nx * cam.x + normal.ny * cam.y + normal.nz * cam.z;
       if (facing > 0.02) continue;
-      const projected = faceCorners(face).map(([x, y, z]) => project(x, y, z));
+      const projected = quad.map((index) => project(CORNERS[index].x, CORNERS[index].y, CORNERS[index].z));
       walls.push({
         projected,
         depth: projected.reduce((sum, point) => sum + point.depth, 0) / projected.length,
@@ -534,12 +704,15 @@ function draw() {
   };
 
   if (!settled && mode !== "sign") {
-    for (const edge of EDGES) {
-      add(edge[0] * HALF, edge[1] * HALF, edge[2] * HALF, edge[3] * HALF, edge[4] * HALF, edge[5] * HALF, "rgba(5, 32, 43, 0.72)", 1.15);
+    for (let e = 0; e < EDGE_INDEX.length; e++) {
+      const a = CORNERS[EDGE_INDEX[e][0]];
+      const b = CORNERS[EDGE_INDEX[e][1]];
+      add(a.x, a.y, a.z, b.x, b.y, b.z, "rgba(5, 32, 43, 0.72)", 1.15);
     }
 
-    for (const face of FACES) {
-      const facing = face.n[0] * cam.x + face.n[1] * cam.y + face.n[2] * cam.z;
+    for (let face = 0; face < QUADS.length; face++) {
+      const normal = quadNormal(face);
+      const facing = normal.nx * cam.x + normal.ny * cam.y + normal.nz * cam.z;
       const color = facing > 0.15 ? "#05202b" : "rgba(5, 32, 43, 0.34)";
       const width = facing > 0.15 ? 1.7 : 1.05;
       let previous = null;
@@ -555,15 +728,14 @@ function draw() {
       }
     }
   } else if (!settled) {
-    const face = FACES[0];
     let previous = null;
     for (const point of points) {
       if (point.break || !previous) {
         previous = point;
         continue;
       }
-      const a = uvToWorld(face, previous.u, previous.v);
-      const b = uvToWorld(face, point.u, point.v);
+      const a = planPoint(previous.u, previous.v);
+      const b = planPoint(point.u, point.v);
       add(a.x, a.y, a.z, b.x, b.y, b.z, "#05202b", 1.7);
       previous = point;
     }
@@ -601,15 +773,13 @@ function draw() {
       }
     }
 
-    if (!settled) {
-      const arrow = arrowOutline(agent.x, agent.y, agent.z, agent.vx, agent.vy, agent.vz);
-      lines.push({
-        poly: arrow.poly,
-        depth: arrow.depth,
-        fill: BOID,
-        width: 0,
-      });
-    }
+    const arrow = arrowOutline(agent.x, agent.y, agent.z, agent.vx, agent.vy, agent.vz);
+    lines.push({
+      poly: arrow.poly,
+      depth: arrow.depth,
+      fill: BOID,
+      width: 0,
+    });
   }
 
   if (wrapMesh) addWrap(lines);
@@ -637,6 +807,19 @@ function draw() {
       ctx.lineTo(line.bx, line.by);
     }
     ctx.stroke();
+  }
+
+  if (mode === "turn" && !settled) {
+    for (let i = 0; i < CORNERS.length; i++) {
+      const point = project(CORNERS[i].x, CORNERS[i].y, CORNERS[i].z);
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 5.5, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "#05202b";
+      ctx.stroke();
+    }
   }
 }
 
@@ -691,16 +874,21 @@ function addWrap(lines) {
 function renderText() {
   const now = strength();
   let line;
-  if (settled && wrapMesh) line = "The skin was not drawn. The signature set the strengths. The rules and the beginning set the paths. That skin is the form.";
+  if (settled && wrapMesh) line = "The skin is fixed. It will not change. The marks keep moving. The signature set the strengths, and the rules set the paths inside that skin.";
   else if (settled) line = "These paths were not drawn. They are the record of the rules. The skin has not closed yet.";
+  else if (now.preview) line = "Attraction pulls the marks toward the ink. Repulsion holds them off the line. Mimicry turns them the way the stroke was drawn. Done carries these rules onto the cube.";
   else if (!signed) line = "The three variables are waiting on a signature. Until then the field is only the rules we set.";
   else line = describe(now, stats);
   reading.textContent = line;
   const spacing = stats.spread ? `${stats.spread.toFixed(0)}` : "—";
   const agreement = stats.spread ? stats.align.toFixed(2) : "—";
   const since = metAt == null ? null : Math.max(0, SETTLE_AFTER - (performance.now() - metAt) / 1000);
-  measure.textContent = settled
-    ? `Outcome  ·  ${wrapMesh ? "the skin" : "the paths"}  ·  beginning ${String(world.seed).padStart(2, "0")}  ·  held at ${world.time.toFixed(1)} s`
+  measure.textContent = wrapMesh
+    ? `Outcome  ·  the skin is fixed  ·  beginning ${String(world.seed).padStart(2, "0")}  ·  ${world.time.toFixed(1)} s`
+    : settled
+    ? `Outcome  ·  the paths  ·  beginning ${String(world.seed).padStart(2, "0")}  ·  ${world.time.toFixed(1)} s`
+    : now.preview
+      ? `Attraction ${now.attract.toFixed(2)}  ·  Repulsion ${now.repel.toFixed(2)}  ·  Mimicry ${now.mimic.toFixed(2)}`
     : since == null
       ? `Outcome  ·  spacing ${spacing}  ·  agreement ${agreement}  ·  beginning ${String(world.seed).padStart(2, "0")}  ·  ${world.time.toFixed(1)} s`
       : `Outcome  ·  spacing ${spacing}  ·  agreement ${agreement}  ·  the skin in ${since.toFixed(0)} s`;
@@ -714,7 +902,7 @@ function settleSculpture() {
   stage.classList.add("settled");
   hint.classList.add("hidden");
   const note = document.querySelector(".frame-note");
-  if (note) note.textContent = "Drag to turn the paths. Scroll to zoom.";
+  if (note) note.textContent = "The paths are the record. The skin closes over them.";
   setMode("turn");
   draw();
   renderText();
@@ -757,17 +945,23 @@ function marksMeet() {
 }
 
 function tick() {
-  if (!paused && world && !settled) {
-    stats = step(world, strength(), strokeSegments(points));
-    if (signed && metAt == null && marksMeet()) metAt = performance.now();
-    if (metAt != null && performance.now() - metAt >= SETTLE_AFTER * 1000) settleSculpture();
+  if (!paused && world) {
+    stats = step(world, liveInput(), strokesForModel());
+    if (!settled) {
+      if (signed && metAt == null && marksMeet()) metAt = performance.now();
+      if (metAt != null && performance.now() - metAt >= SETTLE_AFTER * 1000) settleSculpture();
+    }
   }
   if (settled && !wrapMesh && wrapAt != null && !paused && performance.now() >= wrapAt) {
-    wrapMesh = shrinkWrap(world.agents);
-    wrapAt = null;
-    const note = document.querySelector(".frame-note");
-    if (note && wrapMesh) note.textContent = "Drag to turn the form. Scroll to zoom.";
-    renderText();
+    const skin = shrinkWrap(world.agents);
+    if (skin) {
+      wrapMesh = skin;
+      wrapAt = null;
+      const note = document.querySelector(".frame-note");
+      if (note) note.textContent = "The skin is fixed. The marks keep moving. Drag to turn it.";
+      paintSteps();
+      renderText();
+    }
   }
   if (world) draw();
   frame += 1;
@@ -785,11 +979,28 @@ function replay(nextSeed) {
   wrapAt = null;
   stage.classList.remove("settled");
   const note = document.querySelector(".frame-note");
-  if (note) note.textContent = mode === "sign" ? "Sign on the plan." : "Drag to turn the cube. Scroll to zoom.";
+  if (note) note.textContent = mode === "sign" ? "Sign on the plan." : "Drag a point or a line to change the envelope. Drag empty space to turn.";
   if (!signed && mode === "sign") hint.classList.remove("hidden");
   else hint.classList.add("hidden");
+  paintSteps();
   draw();
   renderText();
+}
+
+function paintSteps() {
+  const current = wrapMesh ? "result" : mode === "turn" ? "cube" : "sign";
+  const items = [
+    ["sign", stepSign],
+    ["cube", stepCube],
+    ["result", stepResult],
+  ];
+  const at = items.findIndex(([name]) => name === current);
+  items.forEach(([name, el], index) => {
+    el.classList.toggle("now", index === at);
+    el.classList.toggle("done", index < at);
+    if (index === at) el.setAttribute("aria-current", "step");
+    else el.removeAttribute("aria-current");
+  });
 }
 
 function setHold(next) {
@@ -805,11 +1016,41 @@ function setHold(next) {
   renderText();
 }
 
-function showDone() {
-  const open = mode === "sign" && points.length > 0 && !settled;
-  doneButton.classList.toggle("hidden", !open);
-  const note = document.querySelector(".frame-note");
-  if (note && !settled && open) note.textContent = "Done opens the cube.";
+function placeDone(clientX, clientY) {
+  const bounds = stage.getBoundingClientRect();
+  const width = doneButton.offsetWidth || 52;
+  const height = doneButton.offsetHeight || 18;
+  const gap = 14;
+  let x = clientX - bounds.left + gap;
+  let y = clientY - bounds.top + gap;
+  if (x + width > bounds.width - 8) x = clientX - bounds.left - width - gap;
+  if (y + height > bounds.height - 8) y = clientY - bounds.top - height - gap;
+  x = Math.max(8, Math.min(x, bounds.width - width - 8));
+  y = Math.max(8, Math.min(y, bounds.height - height - 8));
+  doneButton.style.left = `${x}px`;
+  doneButton.style.top = `${y}px`;
+}
+
+function hideDone() {
+  clearTimeout(doneTimer);
+  doneTimer = null;
+  doneButton.classList.remove("ready");
+  doneButton.classList.add("hidden");
+}
+
+function armDone(clientX, clientY) {
+  clearTimeout(doneTimer);
+  doneTimer = null;
+  doneButton.classList.remove("ready");
+  doneButton.classList.add("hidden");
+  if (mode !== "sign" || settled || !points.length || !Number.isFinite(clientX)) return;
+  doneTimer = setTimeout(() => {
+    doneTimer = null;
+    if (mode !== "sign" || drawing || settled || !points.length) return;
+    doneButton.classList.remove("hidden");
+    placeDone(clientX, clientY);
+    requestAnimationFrame(() => doneButton.classList.add("ready"));
+  }, 520);
 }
 
 function previewSignature() {
@@ -821,8 +1062,11 @@ function previewSignature() {
   paintRuleCube(attract, repel, mimic);
   ruleCaption.textContent = measured
     ? `The signature so far: attraction ${word(attract)} ${attract.toFixed(2)}, repulsion ${word(repel)} ${repel.toFixed(2)}, mimicry ${word(mimic)} ${mimic.toFixed(2)}.`
-    : "Draw the signature. Done opens the cube.";
-  showDone();
+    : "Draw the signature.";
+  const note = document.querySelector(".frame-note");
+  if (note && mode === "sign" && points.length && !settled) {
+    note.textContent = "They pull toward the ink, stay off the line, and follow the stroke.";
+  }
   renderText();
 }
 
@@ -846,17 +1090,16 @@ function setMode(next) {
     yaw = cubeYaw;
     pitch = cubePitch;
   }
-  signButton.setAttribute("aria-pressed", next === "sign" ? "true" : "false");
-  turnButton.setAttribute("aria-pressed", next === "turn" ? "true" : "false");
   stage.classList.toggle("signing", next === "sign");
   stage.classList.toggle("turning", next === "turn");
   signCanvas.setAttribute("aria-label", next === "sign"
     ? "Plan. Sign on the square. The name is copied onto all six faces."
     : "Cube. Drag to turn. The signature is on all six faces.");
   const note = document.querySelector(".frame-note");
-  if (note && !settled) note.textContent = next === "sign" ? "Sign on the plan." : "Drag to turn the cube. Scroll to zoom.";
+  if (note && !settled) note.textContent = next === "sign" ? "Sign on the plan." : "Drag a point or a line to change the envelope. Drag empty space to turn.";
   hint.classList.toggle("hidden", next !== "sign" || points.length > 0 || settled);
-  showDone();
+  hideDone();
+  paintSteps();
   renderText();
   if (world) draw();
 }
@@ -877,13 +1120,9 @@ function clearSignature() {
   wrapMesh = null;
   wrapAt = null;
   stage.classList.remove("settled");
-  const note = document.querySelector(".frame-note");
-  if (note) note.textContent = mode === "sign" ? "Sign on the plan." : "Drag to turn the cube. Scroll to zoom.";
-  hint.classList.toggle("hidden", mode !== "sign");
-  showDone();
+  hideDone();
+  setMode("sign");
   paintReadouts();
-  renderText();
-  draw();
 }
 
 function endStroke() {
@@ -897,7 +1136,18 @@ signCanvas.addEventListener("pointerdown", (event) => {
   signCanvas.setPointerCapture(event.pointerId);
   lastPointer = { x: event.clientX, y: event.clientY };
   if (mode === "turn") {
+    if (!settled) {
+      const local = pointerLocal(event);
+      const hit = hitEnvelope(local.x, local.y);
+      if (hit) {
+        shaping = hit;
+        signCanvas.style.cursor = "move";
+        stage.classList.add("dragging");
+        return;
+      }
+    }
     turning = true;
+    signCanvas.style.cursor = "";
     stage.classList.add("dragging");
     return;
   }
@@ -907,11 +1157,17 @@ signCanvas.addEventListener("pointerdown", (event) => {
   hit.break = true;
   points.push(hit);
   hint.classList.add("hidden");
-  showDone();
+  hideDone();
   draw();
 });
 
 signCanvas.addEventListener("pointermove", (event) => {
+  if (shaping) {
+    moveEnvelope(event.clientX - lastPointer.x, event.clientY - lastPointer.y);
+    lastPointer = { x: event.clientX, y: event.clientY };
+    draw();
+    return;
+  }
   if (turning) {
     yaw += (event.clientX - lastPointer.x) * 0.008;
     pitch = clamp(pitch + (event.clientY - lastPointer.y) * 0.008, -1.15, 1.15);
@@ -919,7 +1175,12 @@ signCanvas.addEventListener("pointermove", (event) => {
     draw();
     return;
   }
+  if (mode === "turn" && !settled) {
+    const local = pointerLocal(event);
+    signCanvas.style.cursor = hitEnvelope(local.x, local.y) ? "move" : "";
+  }
   if (!drawing) return;
+  lastPointer = { x: event.clientX, y: event.clientY };
   const hit = pointerUV(event);
   if (!hit) return;
   const last = points[points.length - 1];
@@ -929,10 +1190,14 @@ signCanvas.addEventListener("pointermove", (event) => {
   draw();
 });
 
-function endPointer() {
+function endPointer(event) {
   turning = false;
+  shaping = null;
+  if (mode === "turn") signCanvas.style.cursor = "";
   stage.classList.remove("dragging");
+  if (event && Number.isFinite(event.clientX)) lastPointer = { x: event.clientX, y: event.clientY };
   endStroke();
+  if (event && mode === "sign" && points.length && !settled) armDone(event.clientX, event.clientY);
 }
 
 signCanvas.addEventListener("pointerup", endPointer);
@@ -948,8 +1213,6 @@ document.querySelector("#replay").addEventListener("click", () => replay(world.s
 document.querySelector("#another").addEventListener("click", () => replay(world.seed + 1));
 document.querySelector("#clear-sign").addEventListener("click", clearSignature);
 holdButton.addEventListener("click", () => setHold(!paused));
-signButton.addEventListener("click", () => setMode("sign"));
-turnButton.addEventListener("click", () => setMode("turn"));
 doneButton.addEventListener("click", () => {
   drawing = false;
   setMode("turn");

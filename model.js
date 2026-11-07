@@ -309,7 +309,7 @@ function step(world, input, strokes) {
             if (d2 === 0 || d2 > reach2) continue;
             const d = Math.sqrt(d2);
             if (d < acc[i].nearest) acc[i].nearest = d;
-            if (input.free) {
+            if (input.free || input.preview) {
               if (d < RULES.spacingRadius) {
                 const push = 1 - d / RULES.spacingRadius;
                 rax -= (dx / d) * push;
@@ -341,7 +341,7 @@ function step(world, input, strokes) {
       }
     }
 
-    if (input.free) {
+    if (input.free || input.preview) {
       acc[i].ax += rax * RULES.spacingScale;
       acc[i].ay += ray * RULES.spacingScale;
       acc[i].az += raz * RULES.spacingScale;
@@ -361,7 +361,38 @@ function step(world, input, strokes) {
       acc[i].fm = Math.hypot(svx / count - agent.vx, svy / count - agent.vy, svz / count - agent.vz) * input.mimic * RULES.mimicScale;
     }
 
-    if (!input.free) {
+    if (input.preview) {
+      const ink = nearestStroke(agent.x, agent.y, agent.z, strokeGrid, strokeCell, RULES.strokeReach, strokeCount ? agent.stroke : null);
+      if (ink && ink.dist > 0.001) {
+        const ixn = (ink.px - agent.x) / ink.dist;
+        const iyn = (ink.py - agent.y) / ink.dist;
+        const izn = (ink.pz - agent.z) / ink.dist;
+        const clearance = 18 + input.repel * 56;
+        if (ink.dist > clearance) {
+          const pull = Math.min(1, (ink.dist - clearance) / 160) * input.attract * 2.2;
+          acc[i].ax += ixn * pull;
+          acc[i].ay += iyn * pull;
+          acc[i].az += izn * pull;
+          acc[i].fa += pull;
+        } else {
+          const shove = (1 - ink.dist / clearance) * (0.35 + input.repel * 1.8);
+          acc[i].ax -= ixn * shove;
+          acc[i].ay -= iyn * shove;
+          acc[i].az -= izn * shove;
+          acc[i].fr += shove;
+        }
+        if (ink.len > 0.001) {
+          const steer = input.mimic * 1.5;
+          const mx = (ink.dx / ink.len * RULES.cruise - agent.vx) * steer;
+          const my = (ink.dy / ink.len * RULES.cruise - agent.vy) * steer;
+          const mz = (ink.dz / ink.len * RULES.cruise - agent.vz) * steer;
+          acc[i].ax += mx;
+          acc[i].ay += my;
+          acc[i].az += mz;
+          acc[i].fm += Math.hypot(mx, my, mz);
+        }
+      }
+    } else if (!input.free) {
     acc[i].ax += rax * input.repel * RULES.repelScale;
     acc[i].ay += ray * input.repel * RULES.repelScale;
     acc[i].az += raz * input.repel * RULES.repelScale;
@@ -455,13 +486,28 @@ function step(world, input, strokes) {
     }
     }
 
-    const inset = RULES.half - RULES.margin;
-    if (agent.x < -inset) acc[i].ax += (-inset - agent.x) * RULES.bound;
-    else if (agent.x > inset) acc[i].ax -= (agent.x - inset) * RULES.bound;
-    if (agent.y < -inset) acc[i].ay += (-inset - agent.y) * RULES.bound;
-    else if (agent.y > inset) acc[i].ay -= (agent.y - inset) * RULES.bound;
-    if (agent.z < -inset) acc[i].az += (-inset - agent.z) * RULES.bound;
-    else if (agent.z > inset) acc[i].az -= (agent.z - inset) * RULES.bound;
+    const planes = input.envelope;
+    if (planes) {
+      const skin = RULES.margin;
+      for (let p = 0; p < planes.length; p++) {
+        const plane = planes[p];
+        const dist = (agent.x - plane.ax) * plane.nx + (agent.y - plane.ay) * plane.ny + (agent.z - plane.az) * plane.nz;
+        if (dist > -skin) {
+          const push = (dist + skin) * RULES.bound;
+          acc[i].ax -= plane.nx * push;
+          acc[i].ay -= plane.ny * push;
+          acc[i].az -= plane.nz * push;
+        }
+      }
+    } else {
+      const inset = RULES.half - RULES.margin;
+      if (agent.x < -inset) acc[i].ax += (-inset - agent.x) * RULES.bound;
+      else if (agent.x > inset) acc[i].ax -= (agent.x - inset) * RULES.bound;
+      if (agent.y < -inset) acc[i].ay += (-inset - agent.y) * RULES.bound;
+      else if (agent.y > inset) acc[i].ay -= (agent.y - inset) * RULES.bound;
+      if (agent.z < -inset) acc[i].az += (-inset - agent.z) * RULES.bound;
+      else if (agent.z > inset) acc[i].az -= (agent.z - inset) * RULES.bound;
+    }
 
     const magnitude = Math.hypot(acc[i].ax, acc[i].ay, acc[i].az);
     if (magnitude > RULES.maxAccel) {
@@ -483,7 +529,7 @@ function step(world, input, strokes) {
     agent.vx += force.ax;
     agent.vy += force.ay;
     agent.vz += force.az;
-    if (!input.free) {
+    if (!input.free && !input.preview) {
       // A slow curve fixed at the start. It reverses, so the path weaves instead of circling.
       const weave = 0.35 + 0.85 * (1 - input.mimic);
       const curl = Math.sin(world.time * agent.tempo + agent.phase) * 0.018 * weave;
@@ -499,10 +545,34 @@ function step(world, input, strokes) {
     agent.vx = (agent.vx / speed) * RULES.cruise;
     agent.vy = (agent.vy / speed) * RULES.cruise;
     agent.vz = (agent.vz / speed) * RULES.cruise;
-    agent.x = Math.min(limit, Math.max(-limit, agent.x + agent.vx));
-    agent.y = Math.min(limit, Math.max(-limit, agent.y + agent.vy));
-    agent.z = Math.min(limit, Math.max(-limit, agent.z + agent.vz));
-    if (input.free) {
+    agent.x += agent.vx;
+    agent.y += agent.vy;
+    agent.z += agent.vz;
+    if (input.envelope) {
+      const gap = 6;
+      for (let pass = 0; pass < 2; pass++) {
+        for (let p = 0; p < input.envelope.length; p++) {
+          const plane = input.envelope[p];
+          const dist = (agent.x - plane.ax) * plane.nx + (agent.y - plane.ay) * plane.ny + (agent.z - plane.az) * plane.nz;
+          if (dist > gap) {
+            agent.x -= plane.nx * (dist - gap);
+            agent.y -= plane.ny * (dist - gap);
+            agent.z -= plane.nz * (dist - gap);
+            const outwardSpeed = agent.vx * plane.nx + agent.vy * plane.ny + agent.vz * plane.nz;
+            if (outwardSpeed > 0) {
+              agent.vx -= plane.nx * outwardSpeed;
+              agent.vy -= plane.ny * outwardSpeed;
+              agent.vz -= plane.nz * outwardSpeed;
+            }
+          }
+        }
+      }
+    } else {
+      agent.x = Math.min(limit, Math.max(-limit, agent.x));
+      agent.y = Math.min(limit, Math.max(-limit, agent.y));
+      agent.z = Math.min(limit, Math.max(-limit, agent.z));
+    }
+    if (input.free || input.preview) {
       agent.found = false;
       agent.atEnd = false;
       agent.face = -1;
@@ -587,15 +657,18 @@ function shrinkWrap(agents) {
     return i + RES * (j + RES * k);
   };
   let marks = 0;
+  const stamp = (x, y, z) => {
+    const id = at(x, y, z);
+    if (id < 0 || solid[id]) return;
+    solid[id] = 1;
+    marks += 1;
+  };
   for (let a = 0; a < agents.length; a++) {
-    const trail = agents[a].trail;
+    const agent = agents[a];
+    stamp(agent.x, agent.y, agent.z);
+    const trail = agent.trail;
     if (!trail) continue;
-    for (let p = 0; p < trail.length; p++) {
-      const id = at(trail[p].x, trail[p].y, trail[p].z);
-      if (id < 0 || solid[id]) continue;
-      solid[id] = 1;
-      marks += 1;
-    }
+    for (let p = 0; p < trail.length; p++) stamp(trail[p].x, trail[p].y, trail[p].z);
   }
   if (!marks) return null;
 

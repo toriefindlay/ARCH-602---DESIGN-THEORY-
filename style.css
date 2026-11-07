@@ -128,9 +128,11 @@ canvas {
   touch-action: none;
 }
 
-.field.signing #sign { cursor: crosshair; }
-.field.turning #sign { cursor: grab; }
-.field.turning.dragging #sign { cursor: grabbing; }
+.field.signing #sign {
+  cursor: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAa0lEQVR42u3UMQ7AIAxDURbu0b1n6Ym4eykdLDEQtjggbCnz+wxtShph71MqLhSnR4xwSkBts3D3AOFL4v9c8VkABc/XHYvjQvH+MNcA4SG4FXAujgDh+tEI3/9bn72eglsBNBw7F+8j2OYHTJBRpfJ/CyIAAAAASUVORK5CYII=") 3 30, crosshair;
+}
+.field.turning #sign,
+.field.turning.dragging #sign { cursor: default; }
 
 .sign-hint {
   position: absolute;
@@ -157,25 +159,32 @@ canvas {
 .sign-done {
   position: absolute;
   z-index: 3;
-  right: 18px;
-  bottom: 18px;
+  left: 0;
+  top: 0;
   margin: 0;
-  padding: 0.9rem 1.4rem;
-  border: 1.5px solid var(--ink);
-  background: var(--type);
-  color: var(--ink);
+  padding: 0.15rem 0.05rem;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
   font-family: var(--sans);
-  font-size: 1rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: lowercase;
   cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.7s ease;
+}
+
+.sign-done.ready {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .sign-done:hover,
 .sign-done:focus-visible {
-  background: var(--attract);
-  border-color: var(--attract);
-  color: var(--type);
+  color: #ffffff;
+  background: transparent;
 }
 
 .sign-done.hidden { display: none; }
@@ -196,6 +205,28 @@ aside {
   gap: 4px;
   padding-top: 2px;
 }
+
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.steps li span { margin-right: 6px; }
+
+.steps li.done { color: rgba(255, 255, 255, 0.62); }
+
+.steps li.now { color: var(--type); }
 
 .deck {
   margin: 0 0 18px;
