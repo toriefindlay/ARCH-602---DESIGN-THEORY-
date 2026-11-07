@@ -11,12 +11,12 @@
 
 (() => {
 const RULES = {
-  count: 1200,
+  count: 800,
   half: 200,
   neighborRadius: 78,
   repelRadius: 26,
   cruise: 0.42,
-  maxAccel: 0.08,
+  maxAccel: 0.2,
   strokeReach: 360,
   strokeClearance: 18,
   strokeFound: 48,
@@ -33,8 +33,8 @@ const RULES = {
   trailSpacing: 5,
   trailLength: 240,
   trailReach: 88,
-  trailGather: 0.42,
-  trailFollow: 0.55,
+  trailGather: 0.85,
+  trailFollow: 1.15,
 };
 
 const OPENING = { attract: 0.45, repel: 0.6, mimic: 0.38 };
@@ -94,6 +94,8 @@ function createField(seed) {
       tempo: 0.32 + rand() * 0.38,
       trail: [],
       found: false,
+      atEnd: false,
+      face: -1,
     });
   }
   return { agents, seed, time: 0 };
@@ -145,7 +147,12 @@ function nearestStroke(x, y, z, grid, cell, reach) {
           const ddz = z - pz;
           const d2 = ddx * ddx + ddy * ddy + ddz * ddz;
           if (d2 > reach2 || (best && d2 >= best.d2)) continue;
-          best = { px, py, pz, d2, dx: stroke.dx, dy: stroke.dy, dz: stroke.dz, len: stroke.len };
+          best = {
+            px, py, pz, d2,
+            dx: stroke.dx, dy: stroke.dy, dz: stroke.dz, len: stroke.len,
+            face: stroke.face == null ? 0 : stroke.face,
+            along: (stroke.along0 || 0) + t * ((stroke.along1 == null ? 1 : stroke.along1) - (stroke.along0 || 0)),
+          };
         }
       }
     }
@@ -219,6 +226,21 @@ function readTrail(agent, index, grid, cell) {
   return { px, py, pz, pw, dx, dy, dz, dw };
 }
 
+function faceGather(agents) {
+  const bins = [];
+  for (let face = 0; face < 6; face++) bins.push({ x: 0, y: 0, z: 0, n: 0 });
+  for (let i = 0; i < agents.length; i++) {
+    const agent = agents[i];
+    if (!agent.atEnd || agent.face < 0) continue;
+    const bin = bins[agent.face];
+    bin.x += agent.x;
+    bin.y += agent.y;
+    bin.z += agent.z;
+    bin.n += 1;
+  }
+  return bins;
+}
+
 function step(world, input, strokes) {
   const { agents } = world;
   const cell = RULES.neighborRadius;
@@ -227,6 +249,7 @@ function step(world, input, strokes) {
   const strokeGrid = buildStrokeGrid(strokes || [], strokeCell);
   const trailCell = RULES.trailReach;
   const trailGrid = input.free ? null : buildTrailGrid(agents, trailCell);
+  const facePull = input.free ? null : faceGather(agents);
   const reach2 = cell * cell;
   const repel = RULES.repelRadius;
   const limit = RULES.half - 4;
@@ -347,21 +370,49 @@ function step(world, input, strokes) {
         acc[i].ay += iyn * pull;
         acc[i].az += izn * pull;
         acc[i].fa += Math.abs(pull);
-      } else if (ink.dist < 70) {
-        const steer = (1 - ink.dist / 70) * input.mimic * RULES.strokeMimic;
-        const mx = (ink.dx / ink.len * RULES.cruise - agent.vx) * steer;
-        const my = (ink.dy / ink.len * RULES.cruise - agent.vy) * steer;
-        const mz = (ink.dz / ink.len * RULES.cruise - agent.vz) * steer;
-        acc[i].ax += mx;
-        acc[i].ay += my;
-        acc[i].az += mz;
-        acc[i].fm += Math.hypot(mx, my, mz);
-        if (ink.dist < 55) {
-          const shove = (1 - ink.dist / 55) * Math.max(input.repel, 0.35) * RULES.strokeRepel;
-          acc[i].ax -= ixn * shove;
-          acc[i].ay -= iyn * shove;
-          acc[i].az -= izn * shove;
-          acc[i].fr += shove;
+      } else if (ink.len > 0.001) {
+        const finished = agent.atEnd || (ink.along > 0.78 && ink.dist < 90);
+        if (finished) {
+          agent.face = agent.atEnd ? agent.face : ink.face;
+          agent.atEnd = true;
+          const bin = facePull[agent.face];
+          if (bin && bin.n > 1) {
+            const ox = bin.x / bin.n - agent.x;
+            const oy = bin.y / bin.n - agent.y;
+            const oz = bin.z / bin.n - agent.z;
+            const od = Math.hypot(ox, oy, oz) || 1;
+            const pull = Math.min(od, 90) / 90 * 0.7;
+            acc[i].ax += (ox / od) * pull;
+            acc[i].ay += (oy / od) * pull;
+            acc[i].az += (oz / od) * pull;
+            acc[i].fa += pull;
+          }
+          const hold = 0.22;
+          acc[i].ax += ixn * hold;
+          acc[i].ay += iyn * hold;
+          acc[i].az += izn * hold;
+        } else {
+          const ahead = 0.16;
+          acc[i].ax += (ink.dx / ink.len) * ahead;
+          acc[i].ay += (ink.dy / ink.len) * ahead;
+          acc[i].az += (ink.dz / ink.len) * ahead;
+          if (ink.dist < 180) {
+            const steer = (1 - ink.dist / 180) * input.mimic * RULES.strokeMimic;
+            const mx = (ink.dx / ink.len * RULES.cruise - agent.vx) * steer;
+            const my = (ink.dy / ink.len * RULES.cruise - agent.vy) * steer;
+            const mz = (ink.dz / ink.len * RULES.cruise - agent.vz) * steer;
+            acc[i].ax += mx;
+            acc[i].ay += my;
+            acc[i].az += mz;
+            acc[i].fm += Math.hypot(mx, my, mz);
+          }
+          if (ink.dist < 110) {
+            const shove = (1 - ink.dist / 110) * input.repel * RULES.strokeRepel;
+            acc[i].ax -= ixn * shove;
+            acc[i].ay -= iyn * shove;
+            acc[i].az -= izn * shove;
+            acc[i].fr += shove;
+          }
         }
       }
     }
@@ -370,7 +421,7 @@ function step(world, input, strokes) {
     if (trail.pw > 0.001) {
       const pd = Math.hypot(trail.px, trail.py, trail.pz) || 1;
       const sat = trail.pw / (trail.pw + 1.4);
-      const gather = (0.5 + input.attract) * sat * RULES.trailGather;
+      const gather = (0.15 + input.attract) * sat * RULES.trailGather;
       acc[i].ax += (trail.px / pd) * gather;
       acc[i].ay += (trail.py / pd) * gather;
       acc[i].az += (trail.pz / pd) * gather;
@@ -379,7 +430,7 @@ function step(world, input, strokes) {
     if (trail.dw > 0.001) {
       const dd = Math.hypot(trail.dx, trail.dy, trail.dz) || 1;
       const sat = trail.dw / (trail.dw + 1.4);
-      const follow = (0.35 + input.mimic) * sat * RULES.trailFollow;
+      const follow = (0.1 + input.mimic) * sat * RULES.trailFollow;
       const tx = (trail.dx / dd) * RULES.cruise - agent.vx;
       const ty = (trail.dy / dd) * RULES.cruise - agent.vy;
       const tz = (trail.dz / dd) * RULES.cruise - agent.vz;
@@ -420,8 +471,9 @@ function step(world, input, strokes) {
     agent.vz += force.az;
     if (!input.free) {
       // A slow curve fixed at the start. It reverses, so the path weaves instead of circling.
-      const curl = Math.sin(world.time * agent.tempo + agent.phase) * 0.011;
-      const curl2 = Math.cos(world.time * agent.tempo * 0.73 + agent.phase) * 0.011;
+      const weave = 0.35 + 0.85 * (1 - input.mimic);
+      const curl = Math.sin(world.time * agent.tempo + agent.phase) * 0.018 * weave;
+      const curl2 = Math.cos(world.time * agent.tempo * 0.73 + agent.phase) * 0.018 * weave;
       const vx = agent.vx;
       const vy = agent.vy;
       const vz = agent.vz;
@@ -430,16 +482,16 @@ function step(world, input, strokes) {
       agent.vz += vx * curl2 - vy * curl * 0.65;
     }
     const speed = Math.hypot(agent.vx, agent.vy, agent.vz) || 1;
-    const breathe = input.free ? 1 : 0.84 + 0.16 * Math.sin(world.time * agent.tempo * 0.62 + agent.phase);
-    const eased = input.free ? RULES.cruise : speed + (RULES.cruise * breathe - speed) * 0.1;
-    agent.vx = (agent.vx / speed) * eased;
-    agent.vy = (agent.vy / speed) * eased;
-    agent.vz = (agent.vz / speed) * eased;
+    agent.vx = (agent.vx / speed) * RULES.cruise;
+    agent.vy = (agent.vy / speed) * RULES.cruise;
+    agent.vz = (agent.vz / speed) * RULES.cruise;
     agent.x = Math.min(limit, Math.max(-limit, agent.x + agent.vx));
     agent.y = Math.min(limit, Math.max(-limit, agent.y + agent.vy));
     agent.z = Math.min(limit, Math.max(-limit, agent.z + agent.vz));
     if (input.free) {
       agent.found = false;
+      agent.atEnd = false;
+      agent.face = -1;
       if (agent.trail.length) agent.trail.length = 0;
     } else if (agent.found) {
       const last = agent.trail[agent.trail.length - 1];
