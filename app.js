@@ -242,17 +242,18 @@ function paintRuleCube(attract, repel, mimic) {
 
 function writeLedger() {
   fixed.innerHTML = [
-    `${RULES.count} marks, all of them inside the cube.`,
-    `The cube is ${SIDE} units on a side. Leaving it is not allowed.`,
-    `Attraction and mimicry look ${RULES.neighborRadius} units out. Beyond that, a mark is alone.`,
-    `Repulsion between marks acts only inside ${RULES.repelRadius} units.`,
-    `Marks ease around ${RULES.cruise.toFixed(2)} units per step, weaving on a curve fixed at the start. The rules steer.`,
-    `Each mark leaves a trail only after it meets the signature. The trail stays. Five seconds after the marks meet, the marks and the cube leave. The paths are shown, then shrink-wrapped. That skin is the final form.`,
-    `The signature is copied onto all six faces.`,
-    `The signature reaches across the cube, through the center. Every stroke is followed. A mark travels its stroke to the end. There, the marks on that stroke are drawn to each other. The trail begins when a mark first meets the ink.`,
-    `Until you sign, the marks stay evenly spaced and move freely. Attraction, mimicry, and the trails wait.`,
-    "A beginning is a seeded set of positions and directions. Replay repeats it. Another beginning changes only the start.",
-    "There is no randomness after the start. If the figure surprises you, the rules and the start still determined it.",
+    `Ours. ${RULES.count} marks, all of them inside the cube. The count is a choice, not a finding.`,
+    `Ours. The cube is ${SIDE} units on a side. Leaving it is not allowed.`,
+    `Ball. Attraction looks ${RULES.neighborRadius} units out, a local constraint. The distance is ours.`,
+    `Ball. Repulsion between marks acts only inside ${RULES.repelRadius} units. The distance is ours.`,
+    `Kwinter. Mimicry copies a heading already in motion. How far it looks is ours.`,
+    `Ours. Marks hold ${RULES.cruise.toFixed(2)} units per step. Speed does not fall after the signature.`,
+    `Ours. A trail begins only after a mark meets the ink, and the trail stays. Five seconds after the marks meet, the cube leaves. The paths are shown, then shrink-wrapped. That skin is the final form.`,
+    `Ours. The signature is copied onto all six faces. Every stroke is followed.`,
+    `Ours. A mark travels its stroke to the end. There, the marks on that stroke are drawn to each other.`,
+    `Ours. Until you sign, the marks stay evenly spaced and move freely. The three variables wait.`,
+    "Ours. A beginning is a seeded set of positions and directions. Replay repeats it. Another beginning changes only the start.",
+    "Ours. There is no randomness after the start. If the figure surprises you, the rules and the start still determined it.",
   ].map((line) => `<li>${line}</li>`).join("");
 }
 
@@ -690,23 +691,19 @@ function addWrap(lines) {
 function renderText() {
   const now = strength();
   let line;
-  if (settled && wrapMesh) line = "The paths are wrapped. This skin is the final form. Drag to turn it. Scroll to zoom.";
-  else if (settled) line = "The cube is gone. These are the paths. The skin closes over them next.";
-  else if (paused) line = "Held. The form is waiting. The signature stays on all six faces.";
-  else if (!signed && points.length && mode === "sign") line = "Draw every stroke. Done opens the cube, and the marks follow all of them.";
-  else if (!signed) line = mode === "turn"
-    ? "You are in the cube. Drag to turn it. Scroll to zoom. Return to Sign to draw."
-    : "This is the plan. Draw on the square. The name is copied onto all six faces.";
+  if (settled && wrapMesh) line = "The skin was not drawn. The signature set the strengths. The rules and the beginning set the paths. That skin is the form.";
+  else if (settled) line = "These paths were not drawn. They are the record of the rules. The skin has not closed yet.";
+  else if (!signed) line = "The three variables are waiting on a signature. Until then the field is only the rules we set.";
   else line = describe(now, stats);
   reading.textContent = line;
   const spacing = stats.spread ? `${stats.spread.toFixed(0)}` : "—";
   const agreement = stats.spread ? stats.align.toFixed(2) : "—";
   const since = metAt == null ? null : Math.max(0, SETTLE_AFTER - (performance.now() - metAt) / 1000);
   measure.textContent = settled
-    ? `Sculpture  ·  beginning ${String(world.seed).padStart(2, "0")}  ·  held at ${world.time.toFixed(1)} s`
+    ? `Outcome  ·  ${wrapMesh ? "the skin" : "the paths"}  ·  beginning ${String(world.seed).padStart(2, "0")}  ·  held at ${world.time.toFixed(1)} s`
     : since == null
-      ? `Spacing ${spacing}  ·  agreement ${agreement}  ·  beginning ${String(world.seed).padStart(2, "0")}  ·  ${world.time.toFixed(1)} s`
-      : `Spacing ${spacing}  ·  agreement ${agreement}  ·  sculpture in ${since.toFixed(0)} s`;
+      ? `Outcome  ·  spacing ${spacing}  ·  agreement ${agreement}  ·  beginning ${String(world.seed).padStart(2, "0")}  ·  ${world.time.toFixed(1)} s`
+      : `Outcome  ·  spacing ${spacing}  ·  agreement ${agreement}  ·  the skin in ${since.toFixed(0)} s`;
 }
 
 function settleSculpture() {

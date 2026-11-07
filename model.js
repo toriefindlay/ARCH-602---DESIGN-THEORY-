@@ -542,34 +542,28 @@ function step(world, input, strokes) {
 }
 
 function describe(input, stats) {
-  const sum = input.attract + input.repel + input.mimic;
   const clustered = stats.spread > 0 && stats.spread < 32;
   const open = stats.spread > 48;
   const agreed = stats.align > 0.55;
-  if (sum < 0.2) {
-    return "The rules are nearly off. What remains is the beginning, slowing down.";
-  }
   if (input.attract > 0.62 && input.repel > 0.62) {
-    return clustered
-      ? "Attraction and repulsion are both strong, and the volume has gathered anyway. Neither strength placed these clusters."
-      : "Attraction and repulsion are both strong. The figure is the argument between them, not a shape either one owns.";
-  }
-  if (input.attract > 0.62 && !clustered) {
-    return "Attraction is set high, and the volume has not gathered. The strength you chose is not yet the form.";
+    return "Attraction and repulsion are both strong. The figure is their argument. The signature set the strengths. It did not draw this.";
   }
   if (input.attract > 0.62 && clustered) {
-    return "The marks have gathered. You did not place the clusters. Attraction, the ink, and the start did.";
+    return "The marks have gathered. Attraction, the ink, and the start did that. The clusters were not placed.";
   }
-  if (input.repel > 0.62 && open && input.attract < 0.35) {
-    return "The volume is staying open. Repulsion is refusing a figure more than it is drawing one.";
+  if (input.attract > 0.62) {
+    return "Attraction is high, and the volume has not gathered. The strength in the signature is not yet the form.";
   }
-  if (input.mimic > 0.62 && !agreed) {
-    return "Mimicry is on, and agreement is still incomplete. Copying takes time, and the other rules interrupt it.";
+  if (input.repel > 0.62 && open) {
+    return "The volume stays open. Repulsion is refusing a figure more than it is drawing one.";
   }
   if (input.mimic > 0.62 && agreed) {
-    return "Directions are lining up. Mimicry copies the stroke and whoever is near. Nobody selected this heading.";
+    return "Directions are lining up. Mimicry copied the stroke and whoever was near. Nobody selected this heading.";
   }
-  return "The three rules are acting through the cube. The trails left behind are the pattern the next marks follow.";
+  if (input.mimic > 0.62) {
+    return "Mimicry is on, and agreement is still incomplete. Copying takes time, and the other rules interrupt it.";
+  }
+  return "The signature set the strengths. The rules and the beginning are steering. The form is not a shape that was drawn.";
 }
 
 // Inflate the trails, then pull the surface back. Gaps smaller than the inflation close.
