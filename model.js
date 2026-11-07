@@ -125,7 +125,7 @@ function buildStrokeGrid(strokes, cell) {
   return grid;
 }
 
-function nearestStroke(x, y, z, grid, cell, reach) {
+function nearestStroke(x, y, z, grid, cell, reach, strokeId) {
   const cx = Math.floor(x / cell);
   const cy = Math.floor(y / cell);
   const cz = Math.floor(z / cell);
@@ -138,6 +138,7 @@ function nearestStroke(x, y, z, grid, cell, reach) {
         if (!bucket) continue;
         for (let n = 0; n < bucket.length; n++) {
           const stroke = bucket[n];
+          if (strokeId != null && stroke.stroke !== strokeId) continue;
           const t = Math.max(0, Math.min(1, ((x - stroke.x1) * stroke.dx + (y - stroke.y1) * stroke.dy + (z - stroke.z1) * stroke.dz) / (stroke.len * stroke.len)));
           const px = stroke.x1 + stroke.dx * t;
           const py = stroke.y1 + stroke.dy * t;
@@ -227,12 +228,16 @@ function readTrail(agent, index, grid, cell) {
 }
 
 function faceGather(agents) {
-  const bins = [];
-  for (let face = 0; face < 6; face++) bins.push({ x: 0, y: 0, z: 0, n: 0 });
+  const bins = new Map();
   for (let i = 0; i < agents.length; i++) {
     const agent = agents[i];
     if (!agent.atEnd || agent.face < 0) continue;
-    const bin = bins[agent.face];
+    const key = agent.face + ":" + (agent.stroke || 0);
+    let bin = bins.get(key);
+    if (!bin) {
+      bin = { x: 0, y: 0, z: 0, n: 0 };
+      bins.set(key, bin);
+    }
     bin.x += agent.x;
     bin.y += agent.y;
     bin.z += agent.z;
@@ -246,7 +251,16 @@ function step(world, input, strokes) {
   const cell = RULES.neighborRadius;
   const grid = buildGrid(agents, cell);
   const strokeCell = RULES.strokeReach;
-  const strokeGrid = buildStrokeGrid(strokes || [], strokeCell);
+  const strokeList = strokes || [];
+  const strokeGrid = buildStrokeGrid(strokeList, strokeCell);
+  let strokeCount = 0;
+  for (let s = 0; s < strokeList.length; s++) {
+    const id = strokeList[s].stroke || 0;
+    if (id + 1 > strokeCount) strokeCount = id + 1;
+  }
+  if (!input.free && strokeCount > 0) {
+    for (let i = 0; i < agents.length; i++) agents[i].stroke = i % strokeCount;
+  }
   const trailCell = RULES.trailReach;
   const trailGrid = input.free ? null : buildTrailGrid(agents, trailCell);
   const facePull = input.free ? null : faceGather(agents);
@@ -355,7 +369,7 @@ function step(world, input, strokes) {
     acc[i].fr = Math.hypot(rax, ray, raz) * input.repel * RULES.repelScale;
     if (alignCount) acc[i].align = alignDots / alignCount;
 
-    const ink = nearestStroke(agent.x, agent.y, agent.z, strokeGrid, strokeCell, RULES.strokeReach);
+    const ink = nearestStroke(agent.x, agent.y, agent.z, strokeGrid, strokeCell, RULES.strokeReach, strokeCount ? agent.stroke : null);
     if (ink && ink.dist > 0.001) {
       const arrived = agent.found;
       if (ink.dist < RULES.strokeFound) agent.found = true;
@@ -375,7 +389,7 @@ function step(world, input, strokes) {
         if (finished) {
           agent.face = agent.atEnd ? agent.face : ink.face;
           agent.atEnd = true;
-          const bin = facePull[agent.face];
+          const bin = facePull.get(agent.face + ":" + (agent.stroke || 0));
           if (bin && bin.n > 1) {
             const ox = bin.x / bin.n - agent.x;
             const oy = bin.y / bin.n - agent.y;
@@ -558,5 +572,144 @@ function describe(input, stats) {
   return "The three rules are acting through the cube. The trails left behind are the pattern the next marks follow.";
 }
 
-window.FieldModel = { RULES, OPENING, createField, step, describe };
+// Inflate the trails, then pull the surface back. Gaps smaller than the inflation close.
+// The skin that remains is the final form.
+function shrinkWrap(agents) {
+  const RES = 42;
+  const DILATE = 3;
+  const ERODE = 2;
+  const limit = RULES.half - 4;
+  const reach = 40;
+  const span = (limit + reach) * 2;
+  const cell = span / RES;
+  const origin = -(limit + reach);
+  const size = RES * RES * RES;
+  const solid = new Uint8Array(size);
+  const at = (x, y, z) => {
+    const i = Math.floor((x - origin) / cell);
+    const j = Math.floor((y - origin) / cell);
+    const k = Math.floor((z - origin) / cell);
+    if (i < 0 || j < 0 || k < 0 || i >= RES || j >= RES || k >= RES) return -1;
+    return i + RES * (j + RES * k);
+  };
+  let marks = 0;
+  for (let a = 0; a < agents.length; a++) {
+    const trail = agents[a].trail;
+    if (!trail) continue;
+    for (let p = 0; p < trail.length; p++) {
+      const id = at(trail[p].x, trail[p].y, trail[p].z);
+      if (id < 0 || solid[id]) continue;
+      solid[id] = 1;
+      marks += 1;
+    }
+  }
+  if (!marks) return null;
+
+  const ball = (radius) => {
+    const list = [];
+    const r2 = radius * radius + 1e-4;
+    for (let z = -radius; z <= radius; z++) {
+      for (let y = -radius; y <= radius; y++) {
+        for (let x = -radius; x <= radius; x++) {
+          if (x * x + y * y + z * z <= r2) list.push([x, y, z]);
+        }
+      }
+    }
+    return list;
+  };
+  const growBy = ball(DILATE);
+  const pullBy = ball(ERODE);
+  const grown = new Uint8Array(size);
+  for (let z = 0; z < RES; z++) {
+    for (let y = 0; y < RES; y++) {
+      for (let x = 0; x < RES; x++) {
+        if (!solid[x + RES * (y + RES * z)]) continue;
+        for (let n = 0; n < growBy.length; n++) {
+          const nx = x + growBy[n][0];
+          const ny = y + growBy[n][1];
+          const nz = z + growBy[n][2];
+          if (nx < 0 || ny < 0 || nz < 0 || nx >= RES || ny >= RES || nz >= RES) continue;
+          grown[nx + RES * (ny + RES * nz)] = 1;
+        }
+      }
+    }
+  }
+  const skin = new Uint8Array(size);
+  for (let z = 0; z < RES; z++) {
+    for (let y = 0; y < RES; y++) {
+      const base = RES * (y + RES * z);
+      for (let x = 0; x < RES; x++) {
+        let keep = 1;
+        for (let n = 0; n < pullBy.length; n++) {
+          const nx = x + pullBy[n][0];
+          const ny = y + pullBy[n][1];
+          const nz = z + pullBy[n][2];
+          if (nx < 0 || ny < 0 || nz < 0 || nx >= RES || ny >= RES || nz >= RES || !grown[nx + RES * (ny + RES * nz)]) {
+            keep = 0;
+            break;
+          }
+        }
+        skin[base + x] = keep;
+      }
+    }
+  }
+
+  const vmap = new Map();
+  const pos = [];
+  const quads = [];
+  const vertex = (i, j, k) => {
+    const key = i + (RES + 1) * (j + (RES + 1) * k);
+    let id = vmap.get(key);
+    if (id == null) {
+      id = pos.length / 3;
+      vmap.set(key, id);
+      pos.push(origin + i * cell, origin + j * cell, origin + k * cell);
+    }
+    return id;
+  };
+  const occupied = (x, y, z) => (
+    x >= 0 && y >= 0 && z >= 0 && x < RES && y < RES && z < RES && skin[x + RES * (y + RES * z)]
+  );
+  for (let z = 0; z < RES; z++) {
+    for (let y = 0; y < RES; y++) {
+      for (let x = 0; x < RES; x++) {
+        if (!occupied(x, y, z)) continue;
+        if (!occupied(x + 1, y, z)) quads.push(vertex(x + 1, y, z), vertex(x + 1, y + 1, z), vertex(x + 1, y + 1, z + 1), vertex(x + 1, y, z + 1));
+        if (!occupied(x - 1, y, z)) quads.push(vertex(x, y, z), vertex(x, y, z + 1), vertex(x, y + 1, z + 1), vertex(x, y + 1, z));
+        if (!occupied(x, y + 1, z)) quads.push(vertex(x, y + 1, z), vertex(x, y + 1, z + 1), vertex(x + 1, y + 1, z + 1), vertex(x + 1, y + 1, z));
+        if (!occupied(x, y - 1, z)) quads.push(vertex(x, y, z), vertex(x + 1, y, z), vertex(x + 1, y, z + 1), vertex(x, y, z + 1));
+        if (!occupied(x, y, z + 1)) quads.push(vertex(x, y, z + 1), vertex(x + 1, y, z + 1), vertex(x + 1, y + 1, z + 1), vertex(x, y + 1, z + 1));
+        if (!occupied(x, y, z - 1)) quads.push(vertex(x, y, z), vertex(x, y + 1, z), vertex(x + 1, y + 1, z), vertex(x + 1, y, z));
+      }
+    }
+  }
+  if (!quads.length) return null;
+
+  const count = pos.length / 3;
+  const acc = new Float32Array(pos.length);
+  const hits = new Uint16Array(count);
+  for (let iter = 0; iter < 6; iter++) {
+    acc.fill(0);
+    hits.fill(0);
+    for (let q = 0; q < quads.length; q += 4) {
+      for (let e = 0; e < 4; e++) {
+        const a = quads[q + e];
+        const b = quads[q + ((e + 1) % 4)];
+        acc[a * 3] += pos[b * 3];
+        acc[a * 3 + 1] += pos[b * 3 + 1];
+        acc[a * 3 + 2] += pos[b * 3 + 2];
+        hits[a] += 1;
+      }
+    }
+    for (let i = 0; i < count; i++) {
+      if (!hits[i]) continue;
+      pos[i * 3] = pos[i * 3] * 0.5 + (acc[i * 3] / hits[i]) * 0.5;
+      pos[i * 3 + 1] = pos[i * 3 + 1] * 0.5 + (acc[i * 3 + 1] / hits[i]) * 0.5;
+      pos[i * 3 + 2] = pos[i * 3 + 2] * 0.5 + (acc[i * 3 + 2] / hits[i]) * 0.5;
+    }
+  }
+  return { pos, quads };
+}
+
+window.FieldModel = { RULES, OPENING, createField, step, describe, shrinkWrap };
 })();

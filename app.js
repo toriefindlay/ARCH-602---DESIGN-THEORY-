@@ -1,4 +1,4 @@
-const { RULES, createField, step, describe } = window.FieldModel;
+const { RULES, createField, step, describe, shrinkWrap } = window.FieldModel;
 
 const canvas = document.querySelector("#field");
 const ctx = canvas.getContext("2d");
@@ -11,6 +11,7 @@ const fixed = document.querySelector("#fixed");
 const holdButton = document.querySelector("#hold");
 const signButton = document.querySelector("#mode-sign");
 const turnButton = document.querySelector("#mode-turn");
+const doneButton = document.querySelector("#sign-done");
 const ruleCanvas = document.querySelector("#rule-cube");
 const ruleCtx = ruleCanvas.getContext("2d");
 const ruleCaption = document.querySelector("#rule-caption");
@@ -57,7 +58,10 @@ let cubePitch = 0.42;
 let lastPointer = null;
 let metAt = null;
 let settled = false;
+let wrapMesh = null;
+let wrapAt = null;
 const SETTLE_AFTER = 5;
+const PATHS_BEFORE_WRAP = 2.2;
 
 function clamp(value, lo = 0, hi = 1) {
   return Math.min(hi, Math.max(lo, value));
@@ -243,9 +247,9 @@ function writeLedger() {
     `Attraction and mimicry look ${RULES.neighborRadius} units out. Beyond that, a mark is alone.`,
     `Repulsion between marks acts only inside ${RULES.repelRadius} units.`,
     `Marks ease around ${RULES.cruise.toFixed(2)} units per step, weaving on a curve fixed at the start. The rules steer.`,
-    `Each mark leaves a trail only after it meets the signature. The trail stays. Five seconds after the marks on each face meet, the marks and the cube leave, and the trails remain.`,
+    `Each mark leaves a trail only after it meets the signature. The trail stays. Five seconds after the marks meet, the marks and the cube leave. The paths are shown, then shrink-wrapped. That skin is the final form.`,
     `The signature is copied onto all six faces.`,
-    `The signature reaches across the cube, through the center. A mark travels the line to its end. There, the marks on that face are drawn to each other. The trail begins when a mark first meets the ink.`,
+    `The signature reaches across the cube, through the center. Every stroke is followed. A mark travels its stroke to the end. There, the marks on that stroke are drawn to each other. The trail begins when a mark first meets the ink.`,
     `Until you sign, the marks stay evenly spaced and move freely. Attraction, mimicry, and the trails wait.`,
     "A beginning is a seeded set of positions and directions. Replay repeats it. Another beginning changes only the start.",
     "There is no randomness after the start. If the figure surprises you, the rules and the start still determined it.",
@@ -418,41 +422,49 @@ function pointerUV(event) {
 }
 
 function strokeSegments(pts) {
+  const runs = [];
+  let run = [];
+  let previous = null;
+  const flush = () => {
+    if (run.length) runs.push(run);
+    run = [];
+  };
+  for (const point of pts) {
+    if (point.break || !previous) {
+      flush();
+      previous = point;
+      continue;
+    }
+    const span = Math.hypot(point.u - previous.u, point.v - previous.v) * SIDE;
+    if (span > 0.4) {
+      run.push({ u1: previous.u, v1: previous.v, u2: point.u, v2: point.v, len: span });
+    }
+    previous = point;
+  }
+  flush();
+
   const segments = [];
   for (let face = 0; face < FACES.length; face++) {
     const plane = FACES[face];
-    let run = [];
-    const flush = () => {
-      const total = run.reduce((sum, seg) => sum + seg.len, 0) || 1;
+    for (let stroke = 0; stroke < runs.length; stroke++) {
+      const samples = runs[stroke];
+      const total = samples.reduce((sum, sample) => sum + sample.len, 0) || 1;
       let walked = 0;
-      for (const seg of run) {
-        seg.face = face;
-        seg.along0 = walked / total;
-        walked += seg.len;
-        seg.along1 = walked / total;
-        segments.push(seg);
+      for (const sample of samples) {
+        const a = uvToWorld(plane, sample.u1, sample.v1);
+        const b = uvToWorld(plane, sample.u2, sample.v2);
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dz = b.z - a.z;
+        const along0 = walked / total;
+        walked += sample.len;
+        segments.push({
+          x1: a.x, y1: a.y, z1: a.z, x2: b.x, y2: b.y, z2: b.z,
+          dx, dy, dz, len: Math.hypot(dx, dy, dz),
+          face, stroke, along0, along1: walked / total,
+        });
       }
-      run = [];
-    };
-    let previous = null;
-    for (const point of pts) {
-      if (point.break || !previous) {
-        flush();
-        previous = point;
-        continue;
-      }
-      const a = uvToWorld(plane, previous.u, previous.v);
-      const b = uvToWorld(plane, point.u, point.v);
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const dz = b.z - a.z;
-      const span = Math.hypot(dx, dy, dz);
-      if (span > 0.4) {
-        run.push({ x1: a.x, y1: a.y, z1: a.z, x2: b.x, y2: b.y, z2: b.z, dx, dy, dz, len: span });
-      }
-      previous = point;
     }
-    flush();
   }
   return segments;
 }
@@ -558,7 +570,7 @@ function draw() {
 
   for (const agent of world.agents) {
     const trail = agent.trail;
-    if (trail && trail.length > 1) {
+    if (!wrapMesh && trail && trail.length > 1) {
       const parts = 4;
       const span = Math.ceil(trail.length / parts);
       for (let part = 0; part < parts; part++) {
@@ -599,6 +611,8 @@ function draw() {
     }
   }
 
+  if (wrapMesh) addWrap(lines);
+
   lines.sort((a, b) => b.depth - a.depth);
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
@@ -625,11 +639,61 @@ function draw() {
   }
 }
 
+function skinColor(light) {
+  const t = 0.22 + 0.78 * clamp(light);
+  const r = Math.round(5 + (254 - 5) * t);
+  const g = Math.round(32 + (77 - 32) * t);
+  const b = Math.round(43 + (123 - 43) * t);
+  return `rgb(${r},${g},${b})`;
+}
+
+function addWrap(lines) {
+  const pos = wrapMesh.pos;
+  const quads = wrapMesh.quads;
+  const cam = cameraToWorld(0, 0, CAMERA_Z);
+  for (let q = 0; q < quads.length; q += 4) {
+    const ids = [quads[q], quads[q + 1], quads[q + 2], quads[q + 3]];
+    const corners = ids.map((id) => [pos[id * 3], pos[id * 3 + 1], pos[id * 3 + 2]]);
+    const ax = corners[1][0] - corners[0][0];
+    const ay = corners[1][1] - corners[0][1];
+    const az = corners[1][2] - corners[0][2];
+    const bx = corners[2][0] - corners[0][0];
+    const by = corners[2][1] - corners[0][1];
+    const bz = corners[2][2] - corners[0][2];
+    const nx = ay * bz - az * by;
+    const ny = az * bx - ax * bz;
+    const nz = ax * by - ay * bx;
+    const nl = Math.hypot(nx, ny, nz) || 1;
+    const cx = (corners[0][0] + corners[1][0] + corners[2][0] + corners[3][0]) * 0.25;
+    const cy = (corners[0][1] + corners[1][1] + corners[2][1] + corners[3][1]) * 0.25;
+    const cz = (corners[0][2] + corners[1][2] + corners[2][2] + corners[3][2]) * 0.25;
+    const vx = cam.x - cx;
+    const vy = cam.y - cy;
+    const vz = cam.z - cz;
+    const vl = Math.hypot(vx, vy, vz) || 1;
+    const light = Math.abs(nx * vx + ny * vy + nz * vz) / (nl * vl);
+    const projected = corners.map(([x, y, z]) => project(x, y, z));
+    let depth = 0;
+    const poly = projected.map((point) => {
+      depth += point.depth;
+      return [point.x, point.y];
+    });
+    lines.push({
+      poly,
+      depth: depth / projected.length,
+      fill: skinColor(light),
+      width: 0,
+    });
+  }
+}
+
 function renderText() {
   const now = strength();
   let line;
-  if (settled) line = "The cube is gone. Drag to turn the sculpture. Scroll to zoom. Only the trails remain.";
+  if (settled && wrapMesh) line = "The paths are wrapped. This skin is the final form. Drag to turn it. Scroll to zoom.";
+  else if (settled) line = "The cube is gone. These are the paths. The skin closes over them next.";
   else if (paused) line = "Held. The form is waiting. The signature stays on all six faces.";
+  else if (!signed && points.length && mode === "sign") line = "Draw every stroke. Done opens the cube, and the marks follow all of them.";
   else if (!signed) line = mode === "turn"
     ? "You are in the cube. Drag to turn it. Scroll to zoom. Return to Sign to draw."
     : "This is the plan. Draw on the square. The name is copied onto all six faces.";
@@ -648,10 +712,12 @@ function renderText() {
 function settleSculpture() {
   if (settled) return;
   settled = true;
+  wrapMesh = null;
+  wrapAt = performance.now() + (reducedMotion ? 0 : PATHS_BEFORE_WRAP * 1000);
   stage.classList.add("settled");
   hint.classList.add("hidden");
   const note = document.querySelector(".frame-note");
-  if (note) note.textContent = "Drag to turn the sculpture. Scroll to zoom.";
+  if (note) note.textContent = "Drag to turn the paths. Scroll to zoom.";
   setMode("turn");
   draw();
   renderText();
@@ -659,14 +725,18 @@ function settleSculpture() {
 
 function marksMeet() {
   const agents = world.agents;
-  const bins = [];
-  for (let face = 0; face < 6; face++) bins.push({ x: 0, y: 0, z: 0, n: 0 });
+  const bins = new Map();
   let ended = 0;
   for (let i = 0; i < agents.length; i++) {
     const agent = agents[i];
     if (!agent.atEnd || agent.face < 0) continue;
     ended += 1;
-    const bin = bins[agent.face];
+    const key = agent.face + ":" + (agent.stroke || 0);
+    let bin = bins.get(key);
+    if (!bin) {
+      bin = { x: 0, y: 0, z: 0, n: 0 };
+      bins.set(key, bin);
+    }
     bin.x += agent.x;
     bin.y += agent.y;
     bin.z += agent.z;
@@ -678,8 +748,8 @@ function marksMeet() {
   for (let i = 0; i < agents.length; i++) {
     const agent = agents[i];
     if (!agent.atEnd || agent.face < 0) continue;
-    const bin = bins[agent.face];
-    if (bin.n < 8) continue;
+    const bin = bins.get(agent.face + ":" + (agent.stroke || 0));
+    if (!bin || bin.n < 4) continue;
     const dx = agent.x - bin.x / bin.n;
     const dy = agent.y - bin.y / bin.n;
     const dz = agent.z - bin.z / bin.n;
@@ -695,6 +765,13 @@ function tick() {
     if (signed && metAt == null && marksMeet()) metAt = performance.now();
     if (metAt != null && performance.now() - metAt >= SETTLE_AFTER * 1000) settleSculpture();
   }
+  if (settled && !wrapMesh && wrapAt != null && !paused && performance.now() >= wrapAt) {
+    wrapMesh = shrinkWrap(world.agents);
+    wrapAt = null;
+    const note = document.querySelector(".frame-note");
+    if (note && wrapMesh) note.textContent = "Drag to turn the form. Scroll to zoom.";
+    renderText();
+  }
   if (world) draw();
   frame += 1;
   if (frame % 20 === 0) renderText();
@@ -707,6 +784,8 @@ function replay(nextSeed) {
   stats = { spread: 0, align: 0 };
   settled = false;
   metAt = null;
+  wrapMesh = null;
+  wrapAt = null;
   stage.classList.remove("settled");
   const note = document.querySelector(".frame-note");
   if (note) note.textContent = mode === "sign" ? "Sign on the plan." : "Drag to turn the cube. Scroll to zoom.";
@@ -718,8 +797,10 @@ function replay(nextSeed) {
 
 function setHold(next) {
   if (next && !paused) setHold.mark = performance.now();
-  if (!next && paused && metAt != null && setHold.mark) {
-    metAt += performance.now() - setHold.mark;
+  if (!next && paused && setHold.mark) {
+    const held = performance.now() - setHold.mark;
+    if (metAt != null) metAt += held;
+    if (wrapAt != null) wrapAt += held;
   }
   paused = next;
   holdButton.textContent = paused ? "Release" : "Hold";
@@ -727,7 +808,33 @@ function setHold(next) {
   renderText();
 }
 
+function showDone() {
+  const open = mode === "sign" && points.length > 0 && !settled;
+  doneButton.classList.toggle("hidden", !open);
+  const note = document.querySelector(".frame-note");
+  if (note && !settled && open) note.textContent = "Done opens the cube.";
+}
+
+function previewSignature() {
+  const scaled = points.map((point) => ({ x: point.u * SIDE, y: point.v * SIDE, break: point.break }));
+  const measured = measureSignature(scaled, SIDE, SIDE);
+  const attract = measured ? measured.attract : 0;
+  const repel = measured ? measured.repel : 0;
+  const mimic = measured ? measured.mimic : 0;
+  paintRuleCube(attract, repel, mimic);
+  ruleCaption.textContent = measured
+    ? `The signature so far: attraction ${word(attract)} ${attract.toFixed(2)}, repulsion ${word(repel)} ${repel.toFixed(2)}, mimicry ${word(mimic)} ${mimic.toFixed(2)}.`
+    : "Draw the signature. Done opens the cube.";
+  showDone();
+  renderText();
+}
+
 function setMode(next) {
+  if (mode === "sign" && next === "turn" && points.length) applySignature();
+  if (next === "sign" && !settled) {
+    signed = null;
+    metAt = null;
+  }
   if (mode === "turn" && next === "sign") {
     cubeYaw = yaw;
     cubePitch = pitch;
@@ -752,6 +859,7 @@ function setMode(next) {
   const note = document.querySelector(".frame-note");
   if (note && !settled) note.textContent = next === "sign" ? "Sign on the plan." : "Drag to turn the cube. Scroll to zoom.";
   hint.classList.toggle("hidden", next !== "sign" || points.length > 0 || settled);
+  showDone();
   renderText();
   if (world) draw();
 }
@@ -769,10 +877,13 @@ function clearSignature() {
   signed = null;
   metAt = null;
   settled = false;
+  wrapMesh = null;
+  wrapAt = null;
   stage.classList.remove("settled");
   const note = document.querySelector(".frame-note");
   if (note) note.textContent = mode === "sign" ? "Sign on the plan." : "Drag to turn the cube. Scroll to zoom.";
   hint.classList.toggle("hidden", mode !== "sign");
+  showDone();
   paintReadouts();
   renderText();
   draw();
@@ -781,7 +892,7 @@ function clearSignature() {
 function endStroke() {
   if (!drawing) return;
   drawing = false;
-  applySignature();
+  previewSignature();
 }
 
 signCanvas.addEventListener("pointerdown", (event) => {
@@ -799,6 +910,7 @@ signCanvas.addEventListener("pointerdown", (event) => {
   hit.break = true;
   points.push(hit);
   hint.classList.add("hidden");
+  showDone();
   draw();
 });
 
@@ -816,7 +928,7 @@ signCanvas.addEventListener("pointermove", (event) => {
   const last = points[points.length - 1];
   if (Math.hypot(hit.u - last.u, hit.v - last.v) < 0.004) return;
   points.push(hit);
-  applySignature();
+  previewSignature();
   draw();
 });
 
@@ -841,6 +953,10 @@ document.querySelector("#clear-sign").addEventListener("click", clearSignature);
 holdButton.addEventListener("click", () => setHold(!paused));
 signButton.addEventListener("click", () => setMode("sign"));
 turnButton.addEventListener("click", () => setMode("turn"));
+doneButton.addEventListener("click", () => {
+  drawing = false;
+  setMode("turn");
+});
 
 window.addEventListener("keydown", (event) => {
   if (event.code !== "Space" || event.repeat) return;
