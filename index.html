@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=turns78">
+  <link rel="stylesheet" href="style.css?v=turns81">
 </head>
 <body>
   <header>
@@ -78,6 +78,12 @@
         <p>Machine learning and computational tools assist generation, evaluation and refinement</p>
       </article>
     </div>
+    <div class="proposal">
+      <p>Our proposal explores how form can emerge from the interaction between a human gesture and a set of rules.</p>
+      <p>A handwritten signature provides the starting conditions. Three studies let cohesion, separation, or alignment lead, revealing how the same gesture can develop into different forms. In The Experiment, participants combine and modify those results.</p>
+      <p>By shaping the conditions rather than specifying the final object, we ask where authorship lies and how much control a designer needs to give up for something unexpected to emerge.</p>
+      <p>From our hands, beyond our control.</p>
+    </div>
   </section>
 
   <figure class="facet-strip">
@@ -107,8 +113,8 @@
   </section>
 
   <section id="studies" class="studies" aria-label="Three interpretations">
-    <p class="section-label">Same beginning. Only the leading rule changes. The lines grow as the flock moves.</p>
-    <p class="turn-note">Your signature’s turns become the places where the rules shape the object.</p>
+    <p class="study-lead">Each study starts with your signature, but gives a different rule more influence. Watch the forms grow as the agents move.</p>
+    <p class="turn-note">Changes in direction along your signature become nodes—points where the modifiers act.</p>
     <div class="transport">
       <button id="pause" type="button" aria-pressed="false" disabled>Pause</button>
       <button id="restart" type="button" disabled>Restart</button>
@@ -121,8 +127,8 @@
     <div class="modifiers">
       <div class="modifier-head">
         <div>
-          <p class="section-label">Texture, volume, and motion. One choice in each, shared by every view</p>
-          <p id="modifier-note" class="modifier-note">None. The studies run on their own rules.</p>
+          <p class="study-lead">Choose up to one modifier from each category. Your choices apply to all studies. Use the sliders to adjust the strength of each effect.</p>
+          <p id="modifier-note" class="modifier-note">No modifiers selected.</p>
           <div class="modifier-tools">
             <button id="clear-modifiers" type="button">Clear modifiers</button>
           </div>
@@ -135,7 +141,7 @@
           <button type="button" data-category="texture" data-modifier="reflection" role="radio" aria-checked="false">Reflection</button>
           <button type="button" data-category="texture" data-modifier="stripes" role="radio" aria-checked="false">Stripes</button>
           <label class="speed">
-            <span>Texture <b id="texture-val">0.60</b></span>
+            <span>Strength <b id="texture-val">0.60</b></span>
             <input id="texture-strength" data-strength="texture" type="range" min="0" max="1" step="0.01" value="0.6" aria-label="Texture strength">
           </label>
         </fieldset>
@@ -145,7 +151,7 @@
           <button type="button" data-category="volume" data-modifier="bubbles" role="radio" aria-checked="false">Bubbles</button>
           <button type="button" data-category="volume" data-modifier="porosity" role="radio" aria-checked="false">Porosity</button>
           <label class="speed">
-            <span>Volume <b id="volume-val">0.60</b></span>
+            <span>Strength <b id="volume-val">0.60</b></span>
             <input id="volume-strength" data-strength="volume" type="range" min="0" max="1" step="0.01" value="0.6" aria-label="Volume strength">
           </label>
         </fieldset>
@@ -155,14 +161,14 @@
           <button type="button" data-category="motion" data-modifier="reaction" role="radio" aria-checked="false">Reaction</button>
           <button type="button" data-category="motion" data-modifier="murmuration" role="radio" aria-checked="false">Murmuration</button>
           <label class="speed">
-            <span>Motion <b id="motion-val">0.60</b></span>
+            <span>Strength <b id="motion-val">0.60</b></span>
             <input id="motion-strength" data-strength="motion" type="range" min="0" max="1" step="0.01" value="0.6" aria-label="Motion strength">
           </label>
         </fieldset>
       </div>
     </div>
     <div class="colour">
-      <p class="section-label">Colour, shared by every view</p>
+      <p class="section-label">Colour — applies to all studies</p>
       <label class="speed hue">
         <span>Tone <b id="tone-val">0.70</b></span>
         <input id="tone" type="range" min="0" max="1" step="0.01" value="0.7" aria-label="Colour lightness and saturation">
@@ -549,6 +555,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js?v=turns49"></script>
+  <script type="module" src="app.js?v=turns50"></script>
 </body>
 </html>

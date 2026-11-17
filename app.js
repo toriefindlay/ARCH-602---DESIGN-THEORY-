@@ -211,7 +211,7 @@ function paintModifier(options = {}) {
     : "The same choices in every view.";
   modifierNote.textContent = phrases.length
     ? `${phrases.join(". ")}. ${quiet.length ? `${quiet.join(" and ")} strength is zero, so that choice adds nothing.` : where}`
-    : "None. The studies run on their own rules.";
+    : "No modifiers selected.";
   if (signature) publishNodes(signature);
   setModifiers(next);
   if (options.restart) beginWithModifier();
