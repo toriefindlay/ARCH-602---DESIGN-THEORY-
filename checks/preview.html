@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Modifier checks</title>
+  <style>
+    body { margin: 24px; font: 15px/1.4 "Avenir Next", Futura, sans-serif; background: #e4dfd4; color: #1b1916; }
+    canvas { width: 384px; height: 384px; image-rendering: pixelated; background: #111; }
+    pre { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <p>Development check. Not part of the instrument.</p>
+  <canvas id="field" width="48" height="48"></canvas>
+  <canvas id="pores" width="96" height="96"></canvas>
+  <pre id="report">Running.</pre>
+  <script type="module">
+    import { porositySample, resetField } from "../sim.js";
+    import { runChecks } from "./modifiers.js";
+
+    const result = runChecks();
+    const canvas = document.querySelector("#field");
+    const context = canvas.getContext("2d");
+    const image = context.createImageData(result.preview.size, result.preview.size);
+    let min = Infinity;
+    let max = -Infinity;
+    for (const value of result.preview.values) {
+      min = Math.min(min, value);
+      max = Math.max(max, value);
+    }
+    result.preview.values.forEach((value, index) => {
+      const tone = Math.round(255 - ((value - min) / (max - min || 1)) * 230);
+      image.data[index * 4] = tone;
+      image.data[index * 4 + 1] = Math.round(tone * 0.96);
+      image.data[index * 4 + 2] = Math.round(tone * 0.9);
+      image.data[index * 4 + 3] = 255;
+    });
+    context.putImageData(image, 0, 0);
+    resetField(4);
+    const pores = document.querySelector("#pores");
+    const poreContext = pores.getContext("2d");
+    const poreImage = poreContext.createImageData(96, 96);
+    for (let y = 0; y < 96; y++) {
+      for (let x = 0; x < 96; x++) {
+        const sample = porositySample(-1.6 + (x / 95) * 3.2, 1.6 - (y / 95) * 3.2, 0);
+        const tone = Math.round(255 - sample.voidness * 220);
+        const index = (y * 96 + x) * 4;
+        poreImage.data[index] = tone;
+        poreImage.data[index + 1] = Math.round(tone * 0.96);
+        poreImage.data[index + 2] = Math.round(tone * 0.9);
+        poreImage.data[index + 3] = 255;
+      }
+    }
+    poreContext.putImageData(poreImage, 0, 0);
+    document.querySelector("#report").textContent = result.ok
+      ? "Passed."
+      : result.failures.map((failure) => failure.name).join(", ");
+    document.body.dataset.ok = result.ok ? "1" : "0";
+  </script>
+</body>
+</html>

@@ -4,85 +4,206 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Out of Our Hands</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=turns44">
 </head>
 <body>
   <header>
     <div>
-      <p class="eyebrow">Out of Our Hands</p>
-      <h1>If the designer writes the rules,<br>who authors the form?</h1>
+      <p class="kicker">A design theory instrument</p>
+      <h1>Out of our hands</h1>
     </div>
-    <p class="course">ARCH 602 · Make it configurable</p>
+    <p class="question">If the designer writes the rules, who authors the form?</p>
   </header>
 
-  <main>
-    <section class="field" aria-labelledby="field-label">
-      <h2 id="field-label" class="visually-hidden">Evolving field</h2>
-      <canvas id="field" aria-hidden="true"></canvas>
-      <canvas id="sign" aria-label="Plan. Sign on the square. The name is copied onto all six faces."></canvas>
-      <p id="sign-hint" class="sign-hint">sign your name here</p>
-      <button id="sign-done" class="sign-done hidden" type="button">Done</button>
-      <p class="frame-note">Sign on the plan.</p>
-    </section>
-
-    <aside>
-      <ol class="steps" aria-label="Steps">
-        <li id="step-sign" aria-current="step"><span>1</span> Signature</li>
-        <li id="step-cube"><span>2</span> Cube</li>
-        <li id="step-result"><span>3</span> Result</li>
-      </ol>
-      <p class="deck">First you sign. That signature sets three variables: attraction, repulsion, and mimicry. Then you turn the cube. The shrink-wrap is the final form.</p>
-
-      <figure class="rule-cube">
-        <canvas id="rule-cube" aria-hidden="true"></canvas>
-        <figcaption id="rule-caption" class="visually-hidden"></figcaption>
-      </figure>
-
-      <section>
-        <h2><span>01</span> Attraction</h2>
-        <p>How tightly the signature sits around its own center.</p>
-        <p class="source">Ball, on pattern as local constraint rather than an imposed picture. Ours: we read that constraint as compactness. A gathered name raises it. Marks in reach are pulled onto the stroke.</p>
-      </section>
-
-      <section>
-        <h2><span>02</span> Repulsion</h2>
-        <p>How long the stroke is, including the path inside the letters.</p>
-        <p class="source">Ball, on the same local constraint keeping neighbors apart. Ours: we read that as the length of the stroke. A long name raises it. Marks that touch the ink are pushed back off the line.</p>
-      </section>
-
-      <section>
-        <h2><span>03</span> Mimicry</h2>
-        <p>How steadily each part of the stroke continues the last.</p>
-        <p class="source">Kwinter, on form as interacting processes in time. Ours: we read that as directional agreement. A smooth heading raises it. Marks follow the direction the stroke was drawn.</p>
-      </section>
-
-      <p class="outcome-label">Reading</p>
-      <p id="reading" class="reading" role="status"></p>
-      <p id="measure" class="measure"></p>
-
-      <div class="actions">
-        <button id="another" type="button">Another beginning</button>
-        <button id="replay" type="button">Replay this beginning</button>
-        <button id="hold" type="button" aria-pressed="false">Hold</button>
-        <button id="clear-sign" type="button">Clear signature</button>
+  <section class="intro" aria-labelledby="argument-title">
+    <div class="plate">
+      <canvas id="sign" aria-label="Draw a signature. The mark becomes the situation the rules act on."></canvas>
+      <p id="sign-hint" class="hint">Sign here</p>
+      <div class="plate-actions">
+        <button id="clear" type="button">Clear</button>
+        <button id="commit" type="button" disabled>Run the rules</button>
       </div>
-    </aside>
-  </main>
+    </div>
+    <div class="argument">
+      <h2 id="argument-title" class="visually-hidden">The argument</h2>
+      <p>The designer does not draw the object. The designer writes three rules: cohesion, separation, and alignment. These are the steering behaviors Craig Reynolds used to model a flock.</p>
+      <p>You sign. The signature is not traced and it is not a mold. It becomes the situation those rules walk into: an initial condition, and a field the agents can feel.</p>
+      <p>Three studies run that same signature from the same beginning. Each one lets a different rule lead. The fourth study gives the rules to you.</p>
+      <p id="status" class="status">The rules are written. They have not met a signature yet.</p>
+    </div>
+  </section>
+
+  <section id="studies" class="studies" aria-label="Three interpretations">
+    <p class="section-label">Same beginning. Only the leading rule changes. The lines grow as the flock moves.</p>
+    <p class="turn-note">Your signature’s turns become the places where the rules shape the object.</p>
+    <div class="transport">
+      <button id="pause" type="button" aria-pressed="false" disabled>Pause</button>
+      <button id="restart" type="button" disabled>Restart</button>
+      <button id="fit" type="button">Fit view</button>
+      <label class="speed">
+        <span>Speed <b id="speed-val">0.70</b></span>
+        <input id="speed" type="range" min="0.2" max="2.2" step="0.05" value="0.7">
+      </label>
+    </div>
+    <div class="modifiers">
+      <div class="modifier-head">
+        <div>
+          <p class="section-label">Texture, volume, and motion. One choice in each, shared by every view</p>
+          <p id="modifier-note" class="modifier-note">None. The studies run on their own rules.</p>
+          <div class="modifier-tools">
+            <button id="symmetry" type="button" aria-pressed="false">Symmetry</button>
+            <button id="clear-modifiers" type="button">Clear modifiers</button>
+          </div>
+        </div>
+      </div>
+      <div class="modifier-groups">
+        <fieldset class="category category-texture" role="radiogroup" aria-label="Texture">
+          <legend>Texture</legend>
+          <button type="button" data-category="texture" data-modifier="none" role="radio" aria-checked="true">None</button>
+          <button type="button" data-category="texture" data-modifier="reflection" role="radio" aria-checked="false">Reflection</button>
+          <button type="button" data-category="texture" data-modifier="stripes" role="radio" aria-checked="false">Stripes</button>
+          <label class="speed">
+            <span>Texture <b id="texture-val">0.60</b></span>
+            <input id="texture-strength" data-strength="texture" type="range" min="0" max="1" step="0.01" value="0.6" aria-label="Texture strength">
+          </label>
+        </fieldset>
+        <fieldset class="category category-volume" role="radiogroup" aria-label="Volume">
+          <legend>Volume</legend>
+          <button type="button" data-category="volume" data-modifier="none" role="radio" aria-checked="true">None</button>
+          <button type="button" data-category="volume" data-modifier="bubbles" role="radio" aria-checked="false">Bubbles</button>
+          <button type="button" data-category="volume" data-modifier="porosity" role="radio" aria-checked="false">Porosity</button>
+          <label class="speed">
+            <span>Volume <b id="volume-val">0.60</b></span>
+            <input id="volume-strength" data-strength="volume" type="range" min="0" max="1" step="0.01" value="0.6" aria-label="Volume strength">
+          </label>
+        </fieldset>
+        <fieldset class="category category-motion" role="radiogroup" aria-label="Motion">
+          <legend>Motion</legend>
+          <button type="button" data-category="motion" data-modifier="none" role="radio" aria-checked="true">None</button>
+          <button type="button" data-category="motion" data-modifier="reaction" role="radio" aria-checked="false">Reaction</button>
+          <button type="button" data-category="motion" data-modifier="inversion" role="radio" aria-checked="false">Inversion</button>
+          <label class="speed">
+            <span>Motion <b id="motion-val">0.60</b></span>
+            <input id="motion-strength" data-strength="motion" type="range" min="0" max="1" step="0.01" value="0.6" aria-label="Motion strength">
+          </label>
+        </fieldset>
+      </div>
+    </div>
+    <div class="colour">
+      <p class="section-label">Colour, shared by every view</p>
+      <label class="speed hue">
+        <span>Tone <b id="tone-val">0.70</b></span>
+        <input id="tone" type="range" min="0" max="1" step="0.01" value="0.7" aria-label="Colour lightness and saturation">
+      </label>
+      <div class="colour-row">
+        <label class="speed hue">
+          <span>Hue <b id="hue-val">Original</b></span>
+          <input id="hue" type="range" min="0" max="360" step="1" value="28" aria-label="Sculpture hue" aria-valuetext="Original">
+        </label>
+        <span id="hue-swatch" class="swatch" aria-hidden="true"></span>
+        <button id="hue-original" type="button" aria-pressed="true">Original</button>
+      </div>
+    </div>
+    <div class="study-grid">
+      <article>
+        <header>
+          <p class="index">01</p>
+          <h2>Cohesion</h2>
+          <p class="also">attraction</p>
+        </header>
+        <div class="viewport">
+          <canvas id="view-cohesion" aria-label="Sculpture led by cohesion. Drag to turn."></canvas>
+        </div>
+        <p class="weights" id="weights-cohesion">Cohesion 1.00 · Separation 0.05 · Alignment 0.08 · Neighbourhood 0.30</p>
+        <p class="trail-note" id="trail-cohesion" hidden>Drawing limit reached. These agents keep moving without adding tubes.</p>
+        <p>Agents gather around the turns. The clusters were not drawn in advance.</p>
+      </article>
+      <article>
+        <header>
+          <p class="index">02</p>
+          <h2>Separation</h2>
+          <p class="also">repulsion</p>
+        </header>
+        <div class="viewport">
+          <canvas id="view-separation" aria-label="Sculpture led by separation. Drag to turn."></canvas>
+        </div>
+        <p class="weights" id="weights-separation">Cohesion 0.08 · Separation 1.00 · Alignment 0.06 · Neighbourhood 0.19</p>
+        <p class="trail-note" id="trail-separation" hidden>Drawing limit reached. These agents keep moving without adding tubes.</p>
+        <p>Agents open space around the turns. The same mark becomes a porous volume.</p>
+      </article>
+      <article>
+        <header>
+          <p class="index">03</p>
+          <h2>Alignment</h2>
+          <p class="also">mimicry</p>
+        </header>
+        <div class="viewport">
+          <canvas id="view-alignment" aria-label="Sculpture led by alignment. Drag to turn."></canvas>
+        </div>
+        <p class="weights" id="weights-alignment">Cohesion 0.10 · Separation 0.24 · Alignment 1.00 · Neighbourhood 0.19</p>
+        <p class="trail-note" id="trail-alignment" hidden>Drawing limit reached. These agents keep moving without adding tubes.</p>
+        <p>Agents draw coordinated connections between the turns. The mark becomes streams.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="experiment" aria-labelledby="experiment-title">
+    <header>
+      <p class="index">04</p>
+      <h2 id="experiment-title">The experiment</h2>
+      <p class="also">all three forms</p>
+    </header>
+    <div class="viewport experiment-view">
+      <canvas id="view-experiment" aria-label="The three studies together. Drag to turn. The sliders change the size of each form."></canvas>
+    </div>
+    <div class="controls">
+      <label>
+        <span>Cohesion <b id="cohesion-val">1.00</b></span>
+        <input id="cohesion" type="range" min="0" max="1" step="0.01" value="1" aria-label="Cohesion size">
+      </label>
+      <label>
+        <span>Separation <b id="separation-val">1.00</b></span>
+        <input id="separation" type="range" min="0" max="1" step="0.01" value="1" aria-label="Separation size">
+      </label>
+      <label>
+        <span>Alignment <b id="alignment-val">1.00</b></span>
+        <input id="alignment" type="range" min="0" max="1" step="0.01" value="1" aria-label="Alignment size">
+      </label>
+      <button id="another" type="button">Another beginning</button>
+    </div>
+    <p class="trail-note" id="trail-experiment" hidden>Drawing limit reached. These agents keep moving without adding tubes.</p>
+    <p id="experiment-note" class="note">The three studies, together. Each slider sets the size of that form.</p>
+    <p class="fine">The sliders change the size of each study in this window. Restart clears every line and begins the same flock once more. Pause holds the flock where it is. Fit view restores the frame.</p>
+  </section>
 
   <footer>
     <section>
       <h2>Decided before you arrive</h2>
-      <ul id="fixed"></ul>
+      <ul>
+        <li>One hundred and seventy agents. The count is a choice, not a finding.</li>
+        <li>Each study keeps its own neighbourhood. In the experiment, the three forms sit together, and each slider changes the size of one of them. The speed control only changes how fast you watch the drawing.</li>
+        <li>The bends, loops, and sweeps of the signature place a few shared points. The same points are used in every study. A chosen modifier is strongest there, and fades smoothly away. The points guide the pattern. They do not pull the flock into a knot. Under Volume, one bubble sits on each turn, or porosity eats back the tubes where they sit close together. Reflection melts adjoining tubes into a glossy surface and keeps the chosen colour as a tint. Stripes wrap the form in bold, irregular bands of the chosen colour. The Texture slider sets how far those bands separate into light and dark. Reaction grows tapering tendrils from those turns, in the same colour as the form. Inversion reverses the flock from where it is. The lines already drawn stay, and the frame still holds them on screen. Colour varies gently along the trail and keeps that variation when the hue changes. The signature stays in its own ink.</li>
+        <li>The stroke is centered and scaled. Its depth is the order in which it was drawn. Time becomes the third dimension.</li>
+        <li>Each agent keeps a relationship with the part of the signature where it began. The boundary only turns the flock at the edge of the frame. It is not a force you set.</li>
+        <li>After the beginning, nothing is random. The same signature, the same rules, and the same beginning return the same object.</li>
+      </ul>
     </section>
     <section>
       <h2>Where the rules come from</h2>
-      <p>Philip Ball, “Pattern Formation in Nature: Physical Constraints and Self-Organising Characteristics,” <cite>Architectural Design</cite> 82, no. 2 (2012), and <cite>The Self-Made Tapestry</cite> (Oxford University Press), on pattern as the result of local constraint rather than an imposed picture. Attraction and repulsion are our reduction of that argument. They are not a model of soap film or of bubble geometry.</p>
-      <p>Sanford Kwinter, “African Genesis (A Presentation),” <cite>Assemblage</cite> 36 (1998): 24–41, on form as the product of interacting processes in time. Mimicry is our reduction: a mark copies the motion beside it, and the heading that results was not chosen as a shape.</p>
-      <p>You sign on one face. We place every stroke on all six, and the marks divide across them: each stroke is followed, not only the first. A mark is drawn toward its stroke, turned along it, and pushed off it when they touch. At the end of that stroke, the marks on it are drawn to each other. Each mark leaves a trail only after it meets the ink, and the trail stays. Five seconds after those marks meet, movement ends and the cube leaves. The paths are shown, then shrink-wrapped. That skin is the final form. On the plan, compactness, length, and directional agreement set how strongly, and the marks show it as you draw. Done opens the cube, and the same rules run on all six faces. Until you sign, the marks stay evenly spaced and move freely. The cube and the population are ours.</p>
+      <p>Craig Reynolds, “Flocks, Herds, and Schools: A Distributed Behavioral Model,” <cite>Computer Graphics</cite> 21, no. 4 (SIGGRAPH, 1987). Cohesion, separation, and alignment are his three steering behaviors. The names attraction, repulsion, and mimicry are the course’s names for the same three. The signature field is ours: a local pull toward the stroke, and a local copy of its direction. It is not a model of a flock in the wild, and it is not a mold of your name.</p>
     </section>
   </footer>
 
-  <script src="model.js"></script>
-  <script src="app.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.js"
+      }
+    }
+  </script>
+  <script type="module" src="app.js?v=turns44"></script>
 </body>
 </html>

@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<pre id="out">running</pre>
+<script type="module">
+import { STUDIES, createFlock, stepFlock, readSignature, resetField, setModifier, tubeRadiusFor } from "../sim.js";
+const points = [];
+for (let i = 0; i < 90; i++) {
+  const t = i / 89;
+  points.push({ x: 30 + t * 460, y: 80 + Math.sin(t * Math.PI * 2) * 36 });
+}
+const signature = readSignature(points, 520, 240);
+setModifier({ id: "none", strength: 0 });
+resetField(4);
+const lines = [];
+function stats(label, flock) {
+  const values = Array.from(flock.crowd).sort((a, b) => a - b);
+  const pick = (p) => values[Math.min(values.length - 1, Math.floor(p * (values.length - 1)))];
+  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+  const radii = values.map((value) => tubeRadiusFor(value, 0.02, 1));
+  const open = tubeRadiusFor(0, 0.02, 1);
+  const packed = tubeRadiusFor(1e6, 0.02, 1);
+  const capped = radii.filter((radius) => radius <= packed + 1e-4 || radius >= open - 1e-4).length / radii.length;
+  lines.push(`${label} p10 ${pick(0.1).toFixed(2)} p50 ${pick(0.5).toFixed(2)} p90 ${pick(0.9).toFixed(2)} r10 ${tubeRadiusFor(pick(0.1), 0.02, 1).toFixed(4)} r50 ${tubeRadiusFor(pick(0.5), 0.02, 1).toFixed(4)} r90 ${tubeRadiusFor(pick(0.9), 0.02, 1).toFixed(4)} capped ${(capped * 100).toFixed(0)}%`);
+}
+for (const study of STUDIES) {
+  const flock = createFlock(signature, study, 4);
+  stats(study.id + " t0", flock);
+  for (let step = 0; step < 400; step++) stepFlock(flock);
+  stats(study.id + " t400", flock);
+}
+document.querySelector("#out").textContent = lines.join("\n");
+document.body.dataset.ready = "1";
+</script>

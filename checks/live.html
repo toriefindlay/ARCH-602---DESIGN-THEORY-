@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Live reaction check</title>
+  <style>
+    body { margin: 0; background: #e4dfd4; }
+    .row { display: grid; grid-template-columns: 1fr 1fr 1fr; height: 100vh; }
+    canvas { width: 100%; height: 100%; display: block; }
+    #report { position: fixed; left: 12px; bottom: 12px; margin: 0; color: #1b1916; }
+  </style>
+  <script type="importmap">
+    { "imports": { "three": "../vendor/three.module.js" } }
+  </script>
+</head>
+<body>
+  <div class="row">
+    <canvas id="cohesion"></canvas>
+    <canvas id="separation"></canvas>
+    <canvas id="alignment"></canvas>
+  </div>
+  <p id="report">Waiting.</p>
+  <script>
+    window.addEventListener("error", (event) => {
+      document.querySelector("#report").textContent = "error " + event.message;
+    });
+  </script>
+  <script type="module">
+    const report = document.querySelector("#report");
+    try {
+    const { STUDIES, createFlock, readSignature, setModifier, setModifiers, setSymmetry, publishNodes } = await import("../sim.js?v=turns44");
+    const { createView, setPlayback, setSculptureColour } = await import("../view.js?v=turns44");
+
+    const choice = new URLSearchParams(location.search);
+    const points = [];
+    const shape = choice.get("shape") || "wave";
+    if (shape === "straight") {
+      for (let i = 0; i < 80; i++) points.push({ x: 40 + i * 6, y: 140 });
+    } else if (shape === "corner") {
+      for (let i = 0; i <= 40; i++) points.push({ x: 40 + i * 6, y: 60 });
+      for (let i = 1; i <= 40; i++) points.push({ x: 280, y: 60 + i * 4 });
+    } else if (shape === "zigzag") {
+      for (let i = 0; i < 7; i++) points.push({ x: 40 + i * 80, y: i % 2 ? 40 : 220 });
+    } else if (shape === "loop") {
+      for (let i = 0; i <= 80; i++) {
+        const angle = (i / 80) * Math.PI * 2;
+        points.push({ x: 300 + Math.cos(angle) * 110, y: 140 + Math.sin(angle) * 90 });
+      }
+    } else if (shape === "mark-a") {
+      for (let i = 0; i <= 64; i++) {
+        const t = i / 64;
+        const angle = t * Math.PI * 1.7;
+        points.push({ x: 120 + Math.cos(angle) * 70, y: 90 + Math.sin(angle) * 70 });
+      }
+      for (let i = 1; i <= 48; i++) points.push({ x: 120 + i * 8, y: 160 + i * 1.4 });
+    } else if (shape === "split") {
+      for (let i = 0; i < 50; i++) points.push({ x: 40 + i * 8, y: 60 });
+      points.push({ break: true });
+      for (let i = 0; i < 50; i++) points.push({ x: 40 + i * 8, y: 220 });
+    } else if (shape === "mark-b") {
+      const joints = [[40, 200], [160, 40], [240, 180], [360, 50], [500, 160]];
+      for (let j = 0; j < joints.length - 1; j++) {
+        const a = joints[j];
+        const b = joints[j + 1];
+        const steps = j === 0 ? 18 : 16;
+        for (let i = j === 0 ? 0 : 1; i <= steps; i++) {
+          const t = i / steps;
+          points.push({ x: a[0] + (b[0] - a[0]) * t, y: a[1] + (b[1] - a[1]) * t });
+        }
+      }
+    } else {
+      for (let i = 0; i < 80; i++) {
+        const t = i / 79;
+        points.push({ x: 40 + t * 520, y: 80 + Math.sin(t * Math.PI * 2.2) * 50 });
+      }
+      points.push({ break: true });
+      for (let i = 0; i < 40; i++) points.push({ x: 80 + i * 4, y: 200 - i * 3 });
+    }
+    const signature = readSignature(points, 640, 280);
+    if (choice.get("symmetry") === "1") {
+      setSymmetry(true);
+      publishNodes(signature);
+    }
+    if (choice.get("texture") || choice.get("volume") || choice.get("motion")) {
+      const strength = Number(choice.get("strength") || 0.85);
+      setModifiers({
+        texture: { id: choice.get("texture") || "none", strength },
+        volume: { id: choice.get("volume") || "none", strength },
+        motion: { id: choice.get("motion") || "none", strength },
+      });
+    } else {
+      setModifier({ id: choice.get("modifier") || "none", strength: Number(choice.get("strength") || 0) });
+    }
+    if (choice.get("hue") != null) setSculptureColour({ hue: Number(choice.get("hue")) });
+    setPlayback({ speed: 1, paused: false });
+    const views = ["cohesion", "separation", "alignment"].map((id, index) => {
+      const canvas = document.querySelector("#" + id);
+      canvas.width = 420;
+      canvas.height = 640;
+      const view = createView(canvas, { autoRotate: false });
+      view.follow(createFlock(signature, STUDIES[index], 4));
+      return view;
+    });
+    const warmup = Number(choice.get("warmup") || 0);
+    for (let step = 0; step < warmup; step++) {
+      for (const view of views) view.step();
+    }
+    const started = performance.now();
+    function publish() {
+      const counts = ["cohesion", "separation", "alignment"].map((id) => document.querySelector("#" + id).dataset.segments || "0");
+      report.textContent = `segments ${counts.join(" ")} nodes ${signature.nodes.length}`;
+      document.body.dataset.segments = counts.join(",");
+    }
+    function tick() {
+      publish();
+      if (performance.now() - started < 6000) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+    views.forEach((view) => view.fit());
+    } catch (error) {
+      report.textContent = "error " + (error && error.stack ? error.stack : error);
+    }
+  </script>
+</body>
+</html>
