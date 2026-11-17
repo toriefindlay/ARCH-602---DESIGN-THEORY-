@@ -52,6 +52,8 @@ body > header,
 .intro,
 .studies,
 .experiment,
+.lineage,
+.history,
 footer {
   width: min(1180px, calc(100% - 40px));
   margin-inline: auto;
@@ -547,11 +549,13 @@ article p:last-child {
 
 .controls {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr 1fr auto auto;
   gap: 22px;
   align-items: end;
   margin-top: 16px;
 }
+
+.controls #symmetry { justify-self: start; }
 
 label span {
   display: flex;
@@ -625,6 +629,230 @@ footer ul {
 }
 
 footer li + li { margin-top: 6px; }
+
+.lineage {
+  margin-top: 28px;
+  padding: 32px 0 8px;
+  border-top: 1px solid var(--line);
+}
+
+.lineage h2,
+.history h2 {
+  margin: 0 0 22px;
+  color: var(--charcoal);
+  font-size: clamp(1.45rem, 2.4vw, 2rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  text-transform: none;
+}
+
+.stages {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr) 28px minmax(0, 1fr) 28px minmax(0, 1fr) 28px minmax(0, 1fr);
+  gap: 8px 6px;
+  align-items: start;
+}
+
+.stage-mark {
+  display: block;
+  width: 72px;
+  height: 56px;
+  margin-bottom: 12px;
+}
+
+.stage h3 {
+  margin: 0 0 6px;
+  color: var(--charcoal);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.stage p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.stage-arrow {
+  position: relative;
+  align-self: start;
+  width: 28px;
+  height: 12px;
+  margin-top: 22px;
+}
+
+.stage-arrow::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 5px;
+  width: 18px;
+  height: 1.5px;
+  background: var(--deep-forest);
+}
+
+.stage-arrow::after {
+  content: "";
+  position: absolute;
+  right: 1px;
+  top: 1.5px;
+  width: 8px;
+  height: 8px;
+  border-top: 1.5px solid var(--deep-forest);
+  border-right: 1.5px solid var(--deep-forest);
+  transform: rotate(45deg);
+}
+
+.history {
+  margin-top: 8px;
+  padding: 32px 0 12px;
+  border-top: 1px solid var(--line);
+}
+
+.history .fine {
+  max-width: 46em;
+  margin: -8px 0 22px;
+}
+
+.periods {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.period {
+  position: relative;
+  margin-left: 5px;
+  padding: 0 0 22px 22px;
+  border-left: 1.5px solid var(--stone);
+}
+
+.period:last-child {
+  padding-bottom: 0;
+  border-left-color: transparent;
+}
+
+.period::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 5px;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--charcoal);
+  border-radius: 50%;
+  background: var(--lagoon);
+}
+
+.period-when {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.period h3 {
+  margin: 3px 0 4px;
+  color: var(--charcoal);
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.period > p {
+  margin: 0;
+  max-width: 62em;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.period details { margin-top: 8px; }
+
+.period summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: var(--deep-forest);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  list-style: none;
+  cursor: pointer;
+}
+
+.period summary::-webkit-details-marker { display: none; }
+
+.period summary::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--deep-forest);
+  border-bottom: 1.5px solid var(--deep-forest);
+  transform: rotate(-45deg);
+}
+
+.period details[open] summary::before { transform: rotate(45deg); }
+
+.period summary:focus-visible {
+  outline: 2px solid var(--deep-forest);
+  outline-offset: 3px;
+}
+
+.period details ul {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--charcoal);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.period-keys {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .stages {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .stage-mark { margin-bottom: 10px; }
+
+  .stage h3 { font-size: 17px; }
+
+  .stage p { font-size: 15px; max-width: 36em; }
+
+  .stage-arrow {
+    width: 12px;
+    height: 28px;
+    margin: 8px 0 8px 30px;
+  }
+
+  .stage-arrow::before {
+    left: 5px;
+    top: 0;
+    width: 1.5px;
+    height: 18px;
+  }
+
+  .stage-arrow::after {
+    right: auto;
+    left: 1.5px;
+    top: auto;
+    bottom: 1px;
+    transform: rotate(135deg);
+  }
+}
 
 @media (max-width: 900px) {
   body > header,

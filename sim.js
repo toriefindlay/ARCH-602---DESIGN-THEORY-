@@ -84,7 +84,7 @@ export const MODIFIER_GROUPS = [
     label: "Motion",
     options: [
       { id: "reaction", label: "Reaction", ready: true },
-      { id: "inversion", label: "Inversion", ready: true },
+      { id: "murmuration", label: "Murmuration", ready: true },
     ],
   },
 ];
@@ -92,7 +92,6 @@ export const MODIFIER_GROUPS = [
 const CATEGORY_OF = {
   stripes: "texture",
   reaction: "motion",
-  inversion: "motion",
   reflection: "texture",
   bubbles: "volume",
   porosity: "volume",
@@ -109,7 +108,6 @@ const modifiers = {
   intensity: 0.6,
 };
 let symmetryOn = false;
-let inversionOn = false;
 const field = { time: 0 };
 
 function clampStrength(value) {
@@ -161,15 +159,6 @@ export function setSymmetry(on) {
   return symmetryOn;
 }
 
-export function setInversion(on) {
-  inversionOn = Boolean(on);
-  return inversionOn;
-}
-
-export function getInversion() {
-  return inversionOn;
-}
-
 export function getSymmetry() {
   return symmetryOn;
 }
@@ -188,7 +177,6 @@ export function getModifiers() {
     motion: { id: modifiers.motion.id, strength: modifiers.motion.strength },
     intensity: modifiers.intensity,
     symmetry: symmetryOn,
-    inversion: inversionOn,
   };
 }
 
@@ -279,28 +267,6 @@ function releaseFromNodes(x, y, z, vx, vy, vz, speed, nodes) {
     vz + clear.z * outward * clear.depth,
     speed,
   );
-}
-
-function keepOnScreen(x, y, z, vx, vy, vz, speed) {
-  const radius = Math.hypot(x, y, z);
-  if (!(radius > SOFT_RADIUS)) return limit(vx, vy, vz, speed);
-  const ux = x / radius;
-  const uy = y / radius;
-  const uz = z / radius;
-  const radial = vx * ux + vy * uy + vz * uz;
-  if (radial > 0) {
-    const contain = Math.min(1, (radius - SOFT_RADIUS) / (FIRM_RADIUS - SOFT_RADIUS));
-    vx -= ux * radial * contain;
-    vy -= uy * radial * contain;
-    vz -= uz * radial * contain;
-  }
-  if (radius > FIRM_RADIUS) {
-    const pull = speed * Math.min(1, (radius - FIRM_RADIUS) / 0.2);
-    vx -= ux * pull;
-    vy -= uy * pull;
-    vz -= uz * pull;
-  }
-  return limit(vx, vy, vz, speed);
 }
 
 function separationNodeClear(x, y, z, nodes) {
@@ -1935,21 +1901,6 @@ export function stepFlock(flock) {
       nvx = released[0];
       nvy = released[1];
       nvz = released[2];
-    }
-    if (inversionOn) {
-      nvx = -nvx;
-      nvy = -nvy;
-      nvz = -nvz;
-      if (flock.study === "separation") {
-        const released = releaseFromNodes(px[i], py[i], pz[i], nvx, nvy, nvz, weights.speed, nodes);
-        nvx = released[0];
-        nvy = released[1];
-        nvz = released[2];
-      }
-      const held = keepOnScreen(px[i], py[i], pz[i], nvx, nvy, nvz, weights.speed);
-      nvx = held[0];
-      nvy = held[1];
-      nvz = held[2];
     }
     nx[i] = nvx;
     ny[i] = nvy;

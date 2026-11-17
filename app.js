@@ -1,5 +1,5 @@
-import { STUDIES, neighborhoodRadius, readSignature, createFlock, resetField, setModifiers, setSymmetry, setInversion, publishNodes } from "./sim.js?v=turns44";
-import { createView, setPlayback, setSculptureColour } from "./view.js?v=turns44";
+import { STUDIES, neighborhoodRadius, readSignature, createFlock, resetField, setModifiers, publishNodes } from "./sim.js?v=turns45";
+import { createView, setPlayback, setSculptureColour } from "./view.js?v=turns46";
 import { PALETTE, applyPalette } from "./palette.js?v=palette";
 
 applyPalette();
@@ -34,7 +34,7 @@ const modifierNames = {
   bubbles: "Bubbles",
   porosity: "Porosity",
   reaction: "Reaction",
-  inversion: "Inversion",
+  murmuration: "Murmuration",
 };
 const modifierNotes = {
   reflection: "Reflection melts adjoining tubes into glass",
@@ -42,7 +42,7 @@ const modifierNotes = {
   bubbles: "One bubble sits on each turn",
   porosity: "Porosity opens the spaces between the tubes",
   reaction: "Reaction grows tapering tendrils from the turns",
-  inversion: "Inversion reverses the flock from where it is",
+  murmuration: "Murmuration swirls around the turns, then stretches and rejoins",
 };
 const hueNames = ["red", "orange", "yellow", "yellow green", "green", "cyan", "azure", "blue", "violet", "magenta", "rose", "red"];
 const sliders = {
@@ -209,12 +209,9 @@ function paintModifier(options = {}) {
   const where = bends
     ? `At the ${bends} turn${bends === 1 ? "" : "s"} in the signature.`
     : "The same choices in every view.";
-  const mirror = symmetryButton.getAttribute("aria-pressed") === "true" ? " Symmetry is on." : "";
   modifierNote.textContent = phrases.length
-    ? `${phrases.join(". ")}. ${quiet.length ? `${quiet.join(" and ")} strength is zero, so that choice adds nothing.` : where}${mirror}`
-    : `None. The studies run on their own rules.${mirror}`;
-  setSymmetry(symmetryButton.getAttribute("aria-pressed") === "true");
-  setInversion(next.motion.id === "inversion");
+    ? `${phrases.join(". ")}. ${quiet.length ? `${quiet.join(" and ")} strength is zero, so that choice adds nothing.` : where}`
+    : "None. The studies run on their own rules.";
   if (signature) publishNodes(signature);
   setModifiers(next);
   if (options.restart) beginWithModifier();
@@ -344,7 +341,7 @@ for (const button of document.querySelectorAll("[data-category]")) {
     for (const other of document.querySelectorAll(`[data-category="${category}"]`)) {
       other.setAttribute("aria-checked", other === button ? "true" : "false");
     }
-    paintModifier({ restart: button.dataset.modifier !== "inversion" });
+    paintModifier({ restart: true });
   });
 }
 
@@ -362,8 +359,7 @@ for (const slider of document.querySelectorAll("[data-strength]")) {
     const category = slider.dataset.strength;
     document.querySelector(`#${category}-val`).textContent = Number(slider.value).toFixed(2);
     const bubbles = category === "volume" && categorySelection("volume").id === "bubbles";
-    const inversion = category === "motion" && categorySelection("motion").id === "inversion";
-    if (!signature || bubbles || inversion) {
+    if (!signature || bubbles) {
       paintModifier();
       return;
     }
@@ -372,8 +368,12 @@ for (const slider of document.querySelectorAll("[data-strength]")) {
   });
 }
 symmetryButton.addEventListener("click", () => {
-  symmetryButton.setAttribute("aria-pressed", symmetryButton.getAttribute("aria-pressed") === "true" ? "false" : "true");
-  paintModifier({ restart: true });
+  const on = symmetryButton.getAttribute("aria-pressed") !== "true";
+  symmetryButton.setAttribute("aria-pressed", on ? "true" : "false");
+  views.experiment.mirrorSymmetry(on);
+  experimentNote.textContent = on
+    ? "Symmetry is on in this window. The original stays, and its mirror stays joined across the centre."
+    : "The three studies, together. Each slider sets the size of that form.";
 });
 
 hueSlider.addEventListener("input", () => paintColour(false));

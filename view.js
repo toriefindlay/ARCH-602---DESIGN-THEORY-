@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "./vendor/OrbitControls.js";
-import { FRAME_RADIUS, advanceField, getModifiers, maxTubeRadius, reactionSample, separationTubeRadius, stepFlock, trailLook } from "./sim.js?v=turns44";
+import { FRAME_RADIUS, advanceField, getModifiers, maxTubeRadius, reactionSample, separationTubeRadius, stepFlock, trailLook } from "./sim.js?v=turns45";
 import { PALETTE, markOn } from "./palette.js?v=palette";
 
 const SPACING = 0.016;
@@ -1486,8 +1486,76 @@ export function createView(canvas, { autoRotate = false, onTrailLimit = null } =
     }
   }
 
+  let showMirror = false;
+  let shownReach = FRAME_RADIUS;
+  const reflection = new THREE.Matrix4();
+  const scaledMatrix = new THREE.Matrix4();
+
+  function currentPlane() {
+    if (!mirrorOf) return null;
+    const sources = mirrorOf() || [];
+    for (let i = 0; i < sources.length; i++) {
+      const source = sources[i];
+      const plane = source.view && source.view.plane && source.view.plane();
+      if (plane) return plane;
+    }
+    return null;
+  }
+
+  function mirrorReach() {
+    if (!showMirror) return FRAME_RADIUS;
+    const plane = currentPlane();
+    if (!plane) return FRAME_RADIUS;
+    const drop = Math.abs(plane.x * plane.nx + plane.y * plane.ny + (plane.z || 0) * (plane.nz || 0));
+    return FRAME_RADIUS + drop * 2;
+  }
+
+  function writeReflection(plane, scale, target) {
+    const nx = plane.nx;
+    const ny = plane.ny;
+    const nz = plane.nz || 0;
+    const px = plane.x * scale;
+    const py = plane.y * scale;
+    const pz = (plane.z || 0) * scale;
+    const dot = nx * px + ny * py + nz * pz;
+    const tx = 2 * dot * nx;
+    const ty = 2 * dot * ny;
+    const tz = 2 * dot * nz;
+    target.set(
+      1 - 2 * nx * nx, -2 * nx * ny, -2 * nx * nz, tx,
+      -2 * ny * nx, 1 - 2 * ny * ny, -2 * ny * nz, ty,
+      -2 * nz * nx, -2 * nz * ny, 1 - 2 * nz * nz, tz,
+      0, 0, 0, 1,
+    );
+  }
+
+  function openSides(root) {
+    const touched = [];
+    root.traverse((child) => {
+      if (!child.material) return;
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      for (let i = 0; i < materials.length; i++) {
+        const material = materials[i];
+        touched.push([material, material.polygonOffset, material.polygonOffsetFactor, material.polygonOffsetUnits]);
+        material.polygonOffset = true;
+        material.polygonOffsetFactor = 1;
+        material.polygonOffsetUnits = 1;
+      }
+    });
+    return touched;
+  }
+
+  function restoreSides(touched) {
+    for (let i = 0; i < touched.length; i++) {
+      const [material, polygonOffset, factor, units] = touched[i];
+      material.polygonOffset = polygonOffset;
+      material.polygonOffsetFactor = factor;
+      material.polygonOffsetUnits = units;
+    }
+  }
+
   function placeCamera(resetAngle) {
-    const distance = frameDistance(camera.fov, camera.aspect, FRAME_RADIUS + getTube().maxRadius);
+    const distance = frameDistance(camera.fov, camera.aspect, mirrorReach() + getTube().maxRadius);
     controls.minDistance = Math.min(2.4, distance * 0.45);
     controls.maxDistance = Math.max(24, distance * 1.6);
     const offset = resetAngle
@@ -1518,6 +1586,15 @@ export function createView(canvas, { autoRotate = false, onTrailLimit = null } =
     mirror(getSources) {
       mirrorOf = getSources;
     },
+    plane() {
+      const signature = state.flock && state.flock.signature;
+      return signature && signature.plane ? signature.plane : null;
+    },
+    mirrorSymmetry(on) {
+      showMirror = Boolean(on);
+      shownReach = mirrorReach();
+      placeCamera(false);
+    },
     step() {
       if (!state.flock || playback.paused) return;
       stepFlock(state.flock);
@@ -1529,7 +1606,13 @@ export function createView(canvas, { autoRotate = false, onTrailLimit = null } =
     draw() {
       controls.update();
       if (mirrorOf) {
+        const reach = mirrorReach();
+        if (Math.abs(reach - shownReach) > 0.001) {
+          shownReach = reach;
+          placeCamera(false);
+        }
         const sources = mirrorOf() || [];
+        const plane = showMirror ? currentPlane() : null;
         renderer.setRenderTarget(null);
         renderer.autoClear = false;
         renderer.setClearColor(PALETTE.stone, 1);
@@ -1544,10 +1627,29 @@ export function createView(canvas, { autoRotate = false, onTrailLimit = null } =
           const background = studyScene.background;
           if (drawn) studyScene.background = null;
           group.scale.setScalar(scale);
+          group.updateMatrix();
+          scaledMatrix.copy(group.matrix);
           try {
             renderer.render(studyScene, camera);
+            if (plane) {
+              studyScene.background = null;
+              writeReflection(plane, scale, reflection);
+              group.matrixAutoUpdate = false;
+              group.matrix.copy(reflection).multiply(scaledMatrix);
+              group.matrixWorldNeedsUpdate = true;
+              const touched = openSides(group);
+              try {
+                renderer.render(studyScene, camera);
+              } finally {
+                restoreSides(touched);
+                group.matrixAutoUpdate = true;
+                group.matrix.copy(scaledMatrix);
+                group.matrixWorldNeedsUpdate = true;
+              }
+            }
           } finally {
             group.scale.setScalar(1);
+            group.updateMatrix();
             studyScene.background = background;
           }
           drawn = true;
