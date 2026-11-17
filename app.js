@@ -11,7 +11,6 @@ const clearButton = document.querySelector("#clear");
 const commitButton = document.querySelector("#commit");
 const status = document.querySelector("#status");
 const studiesEl = document.querySelector("#studies");
-const experimentNote = document.querySelector("#experiment-note");
 const anotherButton = document.querySelector("#another");
 const pauseButton = document.querySelector("#pause");
 const restartButton = document.querySelector("#restart");
@@ -149,10 +148,12 @@ function refreshCommit() {
   commitButton.disabled = !ready;
   hint.classList.toggle("hidden", points.length > 0);
   if (!points.length) {
-    status.textContent = "The rules are written. They have not met a signature yet.";
+    status.hidden = true;
   } else if (!ready) {
+    status.hidden = false;
     status.textContent = "Draw a little further. A dot is not yet a situation.";
   } else if (!signature) {
+    status.hidden = false;
     status.textContent = "The mark is long enough. Run the rules when you are ready.";
   }
 }
@@ -162,7 +163,6 @@ function paintSliderReadouts() {
     readouts[key].textContent = Number(sliders[key].value).toFixed(2);
   }
   speedReadout.textContent = Number(speedSlider.value).toFixed(2);
-  experimentNote.textContent = "The three studies, together. Each slider sets the size of that form.";
 }
 
 function syncPlayback() {
@@ -252,6 +252,7 @@ function startFlocks(options = {}) {
   if (!options.keepPlayback && !reducedMotion) paused = false;
   syncPlayback();
   const label = String(seed).padStart(2, "0");
+  status.hidden = false;
   status.textContent = paused
     ? `Beginning ${label} is held. Play to let the flock draw.`
     : `Beginning ${label}. The flock is drawing. Each line is where an agent has been.`;
@@ -314,6 +315,7 @@ pauseButton.addEventListener("click", () => {
   paused = !paused;
   syncPlayback();
   const label = String(seed).padStart(2, "0");
+  status.hidden = false;
   status.textContent = paused
     ? `Beginning ${label} is held. The lines stay where the flock left them.`
     : `Beginning ${label}. The flock is drawing again.`;
@@ -371,9 +373,6 @@ symmetryButton.addEventListener("click", () => {
   const on = symmetryButton.getAttribute("aria-pressed") !== "true";
   symmetryButton.setAttribute("aria-pressed", on ? "true" : "false");
   views.experiment.mirrorSymmetry(on);
-  experimentNote.textContent = on
-    ? "Symmetry is on in this window. The original stays, and its mirror stays joined across the centre."
-    : "The three studies, together. Each slider sets the size of that form.";
 });
 
 hueSlider.addEventListener("input", () => paintColour(false));
@@ -394,6 +393,28 @@ for (const study of STUDIES) {
   if (!line) continue;
   const radius = neighborhoodRadius(study.cohesion);
   line.textContent = `Cohesion ${study.cohesion.toFixed(2)} · Separation ${study.separation.toFixed(2)} · Alignment ${study.alignment.toFixed(2)} · Neighbourhood ${radius.toFixed(2)}`;
+}
+
+const eraNodes = document.querySelectorAll(".era-node");
+for (const node of eraNodes) {
+  node.addEventListener("click", () => {
+    const wasOpen = node.getAttribute("aria-expanded") === "true";
+    for (const other of eraNodes) {
+      other.setAttribute("aria-expanded", "false");
+      const panel = document.getElementById(other.getAttribute("aria-controls"));
+      if (panel) panel.hidden = true;
+    }
+    if (!wasOpen) {
+      node.setAttribute("aria-expanded", "true");
+      const panel = document.getElementById(node.getAttribute("aria-controls"));
+      if (panel) panel.hidden = false;
+      const scroller = node.closest(".era-scroller");
+      if (scroller) {
+        const left = node.offsetLeft - (scroller.clientWidth - node.offsetWidth) / 2;
+        scroller.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
+      }
+    }
+  });
 }
 
 resizeSign();

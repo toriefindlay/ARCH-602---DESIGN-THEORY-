@@ -7,18 +7,80 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=turns49">
+  <link rel="stylesheet" href="style.css?v=turns65">
 </head>
 <body>
   <header>
-    <div>
-      <p class="kicker">A design theory instrument</p>
+    <p class="kicker">A design theory instrument</p>
+    <div class="mast">
       <h1>Out of our hands</h1>
+      <p class="tagline">From our hands, beyond our control.</p>
+      <p class="question">If the designer writes the rules, who authors the form?</p>
     </div>
-    <p class="question">If the designer writes the rules, who authors the form?</p>
   </header>
 
-  <section class="intro" aria-labelledby="argument-title">
+  <section class="lineage" aria-labelledby="lineage-title">
+    <h2 id="lineage-title">From Designing Forms to Designing Systems</h2>
+    <div class="stages">
+      <article class="stage">
+        <svg class="stage-mark" viewBox="0 0 72 56" aria-hidden="true">
+          <polygon points="16,12 56,8 62,46 12,48" fill="var(--sand)" stroke="var(--charcoal)" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+        <h3>Traditional architectural design</h3>
+        <p>Architect directly creates a form</p>
+      </article>
+      <span class="stage-arrow" aria-hidden="true"></span>
+      <article class="stage">
+        <svg class="stage-mark" viewBox="0 0 72 56" aria-hidden="true">
+          <rect x="6" y="18" width="16" height="16" fill="var(--lagoon)" stroke="var(--charcoal)" stroke-width="1.5"/>
+          <rect x="28" y="18" width="16" height="16" fill="var(--lagoon)" stroke="var(--charcoal)" stroke-width="1.5"/>
+          <rect x="50" y="18" width="16" height="16" fill="var(--lagoon)" stroke="var(--charcoal)" stroke-width="1.5"/>
+        </svg>
+        <h3>Rule-based design</h3>
+        <p>Architect defines rules that generate forms</p>
+      </article>
+      <span class="stage-arrow" aria-hidden="true"></span>
+      <article class="stage">
+        <svg class="stage-mark" viewBox="0 0 72 56" aria-hidden="true">
+          <line x1="6" y1="48" x2="66" y2="48" stroke="var(--charcoal)" stroke-width="1.5"/>
+          <rect x="8" y="34" width="12" height="14" fill="var(--sky)" stroke="var(--charcoal)" stroke-width="1.5"/>
+          <rect x="28" y="22" width="16" height="26" fill="var(--sky)" stroke="var(--charcoal)" stroke-width="1.5"/>
+          <rect x="50" y="10" width="16" height="38" fill="var(--sky)" stroke="var(--charcoal)" stroke-width="1.5"/>
+        </svg>
+        <h3>Parametric design</h3>
+        <p>Parameters and relationships control geometric variation</p>
+      </article>
+      <span class="stage-arrow" aria-hidden="true"></span>
+      <article class="stage">
+        <svg class="stage-mark" viewBox="0 0 72 56" aria-hidden="true">
+          <circle cx="36" cy="10" r="4.5" fill="none" stroke="var(--charcoal)" stroke-width="1.5"/>
+          <path d="M36 14.5 L16 30 M36 14.5 L36 30 M36 14.5 L56 30" fill="none" stroke="var(--charcoal)" stroke-width="1.5"/>
+          <circle cx="16" cy="40" r="7" fill="none" stroke="var(--charcoal)" stroke-width="1.5"/>
+          <circle cx="36" cy="40" r="7" fill="var(--deep-forest)" stroke="var(--charcoal)" stroke-width="1.5"/>
+          <circle cx="56" cy="40" r="7" fill="none" stroke="var(--charcoal)" stroke-width="1.5"/>
+        </svg>
+        <h3>Evolutionary generative design</h3>
+        <p>Algorithms generate, evaluate, select and evolve options</p>
+      </article>
+      <span class="stage-arrow" aria-hidden="true"></span>
+      <article class="stage">
+        <svg class="stage-mark" viewBox="0 0 72 56" aria-hidden="true">
+          <path d="M16 16 L36 12 L56 18 L48 32 L24 34 Z" fill="none" stroke="var(--charcoal)" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M16 16 L24 34 M56 18 L48 32" fill="none" stroke="var(--charcoal)" stroke-width="1.5"/>
+          <circle cx="16" cy="16" r="4" fill="var(--coral)" stroke="var(--charcoal)" stroke-width="1.5"/>
+          <circle cx="36" cy="12" r="4" fill="var(--coral)" stroke="var(--charcoal)" stroke-width="1.5"/>
+          <circle cx="56" cy="18" r="4" fill="var(--terracotta)" stroke="var(--charcoal)" stroke-width="1.5"/>
+          <circle cx="48" cy="32" r="4" fill="var(--terracotta)" stroke="var(--charcoal)" stroke-width="1.5"/>
+          <circle cx="24" cy="34" r="4" fill="var(--sunflower)" stroke="var(--charcoal)" stroke-width="1.5"/>
+        </svg>
+        <h3>AI-assisted generative design</h3>
+        <p>Machine learning and computational tools assist generation, evaluation and refinement</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="intro" aria-labelledby="gesture-title">
+    <h2 id="gesture-title" class="gesture-title">The Gesture</h2>
     <div class="plate">
       <canvas id="sign" aria-label="Draw a signature. The mark becomes the situation the rules act on."></canvas>
       <p id="sign-hint" class="hint">Sign here</p>
@@ -28,11 +90,11 @@
       </div>
     </div>
     <div class="argument">
-      <h2 id="argument-title" class="visually-hidden">The argument</h2>
-      <p>The designer does not draw the object. The designer writes three rules: cohesion, separation, and alignment. These are the steering behaviors Craig Reynolds used to model a flock.</p>
-      <p>You sign. The signature is not traced and it is not a mold. It becomes the situation those rules walk into: an initial condition, and a field the agents can feel.</p>
-      <p>Three studies run that same signature from the same beginning. Each one lets a different rule lead. The fourth study gives the rules to you.</p>
-      <p id="status" class="status">The rules are written. They have not met a signature yet.</p>
+      <h2 id="argument-title" class="visually-hidden">The Argument</h2>
+      <p>Every form begins with your signature. Its curves and turns guide a flock of digital agents, whose movement follows three behaviours: cohesion, separation, and alignment.</p>
+      <p>Three studies begin with the same signature, each giving a different behaviour more influence. In The Experiment, you can bring their forms together and shape your own composition.</p>
+      <p>Make your mark to see what unfolds.</p>
+      <p id="status" class="status" hidden>The rules are written. They have not met a signature yet.</p>
     </div>
   </section>
 
@@ -152,7 +214,7 @@
   <section class="experiment" aria-labelledby="experiment-title">
     <header>
       <p class="index">04</p>
-      <h2 id="experiment-title">The experiment</h2>
+      <h2 id="experiment-title">The Experiment</h2>
       <p class="also">all three forms</p>
     </header>
     <div class="viewport experiment-view">
@@ -175,188 +237,219 @@
       <button id="another" type="button">Another beginning</button>
     </div>
     <p class="trail-note" id="trail-experiment" hidden>Drawing limit reached. These agents keep moving without adding tubes.</p>
-    <p id="experiment-note" class="note">The three studies, together. Each slider sets the size of that form.</p>
-    <p class="fine">The sliders change the size of each study in this window. Symmetry mirrors the forms here across the centre, keeps the original, and shows the reflection joined to it. The three studies above stay as they are. Restart clears every line and begins the same flock once more. Pause holds the flock where it is. Fit view restores the frame.</p>
+    <p class="note">Bring the three studies together to create your own composition. Use the sliders to adjust the size of each form, and turn on Symmetry to join it with its mirror image. Your changes here leave the studies above unchanged.</p>
+    <p class="note">Pause to explore the form, Restart to watch it grow again, or Fit View to bring the whole object back into view.</p>
   </section>
 
-  <section class="lineage" aria-labelledby="lineage-title">
-    <h2 id="lineage-title">From Designing Forms to Designing Systems</h2>
-    <div class="stages">
-      <article class="stage">
-        <svg class="stage-mark" viewBox="0 0 72 56" aria-hidden="true">
-          <polygon points="16,12 56,8 62,46 12,48" fill="var(--sand)" stroke="var(--charcoal)" stroke-width="1.5" stroke-linejoin="round"/>
-        </svg>
-        <h3>Traditional architectural design</h3>
-        <p>Architect directly creates a form</p>
-      </article>
-      <span class="stage-arrow" aria-hidden="true"></span>
-      <article class="stage">
-        <svg class="stage-mark" viewBox="0 0 72 56" aria-hidden="true">
-          <rect x="6" y="18" width="16" height="16" fill="var(--lagoon)" stroke="var(--charcoal)" stroke-width="1.5"/>
-          <rect x="28" y="18" width="16" height="16" fill="var(--lagoon)" stroke="var(--charcoal)" stroke-width="1.5"/>
-          <rect x="50" y="18" width="16" height="16" fill="var(--lagoon)" stroke="var(--charcoal)" stroke-width="1.5"/>
-        </svg>
-        <h3>Rule-based design</h3>
-        <p>Architect defines rules that generate forms</p>
-      </article>
-      <span class="stage-arrow" aria-hidden="true"></span>
-      <article class="stage">
-        <svg class="stage-mark" viewBox="0 0 72 56" aria-hidden="true">
-          <line x1="6" y1="48" x2="66" y2="48" stroke="var(--charcoal)" stroke-width="1.5"/>
-          <rect x="8" y="34" width="12" height="14" fill="var(--sky)" stroke="var(--charcoal)" stroke-width="1.5"/>
-          <rect x="28" y="22" width="16" height="26" fill="var(--sky)" stroke="var(--charcoal)" stroke-width="1.5"/>
-          <rect x="50" y="10" width="16" height="38" fill="var(--sky)" stroke="var(--charcoal)" stroke-width="1.5"/>
-        </svg>
-        <h3>Parametric design</h3>
-        <p>Parameters and relationships control geometric variation</p>
-      </article>
-      <span class="stage-arrow" aria-hidden="true"></span>
-      <article class="stage">
-        <svg class="stage-mark" viewBox="0 0 72 56" aria-hidden="true">
-          <circle cx="36" cy="10" r="4.5" fill="none" stroke="var(--charcoal)" stroke-width="1.5"/>
-          <path d="M36 14.5 L16 30 M36 14.5 L36 30 M36 14.5 L56 30" fill="none" stroke="var(--charcoal)" stroke-width="1.5"/>
-          <circle cx="16" cy="40" r="7" fill="none" stroke="var(--charcoal)" stroke-width="1.5"/>
-          <circle cx="36" cy="40" r="7" fill="var(--deep-forest)" stroke="var(--charcoal)" stroke-width="1.5"/>
-          <circle cx="56" cy="40" r="7" fill="none" stroke="var(--charcoal)" stroke-width="1.5"/>
-        </svg>
-        <h3>Evolutionary generative design</h3>
-        <p>Algorithms generate, evaluate, select and evolve options</p>
-      </article>
-      <span class="stage-arrow" aria-hidden="true"></span>
-      <article class="stage">
-        <svg class="stage-mark" viewBox="0 0 72 56" aria-hidden="true">
-          <path d="M16 16 L36 12 L56 18 L48 32 L24 34 Z" fill="none" stroke="var(--charcoal)" stroke-width="1.5" stroke-linejoin="round"/>
-          <path d="M16 16 L24 34 M56 18 L48 32" fill="none" stroke="var(--charcoal)" stroke-width="1.5"/>
-          <circle cx="16" cy="16" r="4" fill="var(--coral)" stroke="var(--charcoal)" stroke-width="1.5"/>
-          <circle cx="36" cy="12" r="4" fill="var(--coral)" stroke="var(--charcoal)" stroke-width="1.5"/>
-          <circle cx="56" cy="18" r="4" fill="var(--terracotta)" stroke="var(--charcoal)" stroke-width="1.5"/>
-          <circle cx="48" cy="32" r="4" fill="var(--terracotta)" stroke="var(--charcoal)" stroke-width="1.5"/>
-          <circle cx="24" cy="34" r="4" fill="var(--sunflower)" stroke="var(--charcoal)" stroke-width="1.5"/>
-        </svg>
-        <h3>AI-assisted generative design</h3>
-        <p>Machine learning and computational tools assist generation, evaluation and refinement</p>
-      </article>
-    </div>
+  <section class="modifiers-explored" aria-labelledby="modifiers-explored-title">
+    <h2 id="modifiers-explored-title">Modifiers Explored</h2>
+    <img src="assets/modifiers-12-gesture.png" width="1536" height="1024" alt="Reference gallery of twelve modifiers in three rows of four. Top row: Symmetry, Bubbles, Zebra Stripes, Chemical Reactions. Middle row: Smoke, Sponge, Murmuration, Wind Flow. Bottom row: Reflections, Gesture, Foam, Erosion. The thumbnails are AI-generated illustrations.">
   </section>
 
   <section class="history" aria-labelledby="history-title">
     <h2 id="history-title">From Mathematical Thinking to Artificial Intelligence</h2>
-    <p class="fine">Dates are approximate. A range marks when a way of working became important, not the year it began or ended.</p>
-    <ol class="periods">
-      <li class="period">
-        <p class="period-when">c. 300 BC</p>
-        <h3>Ancient geometric principles</h3>
+    <div class="era-scroller">
+      <ol class="periods">
+        <li>
+          <button type="button" class="era-node" aria-expanded="false" aria-controls="era-1">
+            <svg class="era-mark" viewBox="0 0 56 36" aria-hidden="true">
+              <rect x="14" y="4" width="28" height="28" fill="var(--sand)" stroke="var(--charcoal)" stroke-width="1.5"/>
+              <circle cx="28" cy="18" r="9" fill="none" stroke="var(--charcoal)" stroke-width="1.5"/>
+            </svg>
+            <span class="period-when">c. 300 BC</span>
+            <span class="period-name">Ancient geometric principles</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="era-node" aria-expanded="false" aria-controls="era-2">
+            <svg class="era-mark" viewBox="0 0 56 36" aria-hidden="true">
+              <path d="M8 8 Q28 32 48 8" fill="none" stroke="var(--lagoon)" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="8" y1="6" x2="8" y2="2" stroke="var(--charcoal)" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="48" y1="6" x2="48" y2="2" stroke="var(--charcoal)" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span class="period-when">1880s–1920s</span>
+            <span class="period-name">Organic and natural systems</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="era-node" aria-expanded="false" aria-controls="era-3">
+            <svg class="era-mark" viewBox="0 0 56 36" aria-hidden="true">
+              <rect x="6" y="6" width="44" height="24" fill="var(--sky)" stroke="var(--charcoal)" stroke-width="1.5"/>
+              <circle cx="16" cy="14" r="2.2" fill="var(--charcoal)"/>
+              <circle cx="28" cy="14" r="2.2" fill="var(--chalk)"/>
+              <circle cx="40" cy="14" r="2.2" fill="var(--charcoal)"/>
+              <circle cx="16" cy="23" r="2.2" fill="var(--chalk)"/>
+              <circle cx="28" cy="23" r="2.2" fill="var(--charcoal)"/>
+              <circle cx="40" cy="23" r="2.2" fill="var(--chalk)"/>
+            </svg>
+            <span class="period-when">1940s–1950s</span>
+            <span class="period-name">Birth of computational thinking</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="era-node" aria-expanded="false" aria-controls="era-4">
+            <svg class="era-mark" viewBox="0 0 56 36" aria-hidden="true">
+              <rect x="8" y="3" width="40" height="22" fill="var(--sunflower)" stroke="var(--charcoal)" stroke-width="1.5"/>
+              <polyline points="14,17 23,8 33,16 42,9" fill="none" stroke="var(--charcoal)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+              <line x1="22" y1="29" x2="34" y2="29" stroke="var(--charcoal)" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="18" y1="33" x2="38" y2="33" stroke="var(--charcoal)" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span class="period-when">1960s</span>
+            <span class="period-name">Computer-aided design</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="era-node" aria-expanded="false" aria-controls="era-5">
+            <svg class="era-mark" viewBox="0 0 56 36" aria-hidden="true">
+              <line x1="10" y1="4" x2="10" y2="30" stroke="var(--charcoal)" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="46" y1="4" x2="46" y2="30" stroke="var(--charcoal)" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M10 8 Q28 28 46 8" fill="none" stroke="var(--terracotta)" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="4" y1="30" x2="52" y2="30" stroke="var(--charcoal)" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span class="period-when">1970s</span>
+            <span class="period-name">Form-finding and optimization</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="era-node" aria-expanded="false" aria-controls="era-6">
+            <svg class="era-mark" viewBox="0 0 56 36" aria-hidden="true">
+              <line x1="4" y1="32" x2="52" y2="32" stroke="var(--charcoal)" stroke-width="1.5" stroke-linecap="round"/>
+              <rect x="8" y="20" width="8" height="12" fill="var(--deep-forest)" stroke="var(--charcoal)" stroke-width="1.5"/>
+              <rect x="24" y="12" width="8" height="20" fill="var(--deep-forest)" stroke="var(--charcoal)" stroke-width="1.5"/>
+              <rect x="40" y="4" width="8" height="28" fill="var(--deep-forest)" stroke="var(--charcoal)" stroke-width="1.5"/>
+            </svg>
+            <span class="period-when">1980s–1990s</span>
+            <span class="period-name">Parametric and digital architecture</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="era-node" aria-expanded="false" aria-controls="era-7">
+            <svg class="era-mark" viewBox="0 0 56 36" aria-hidden="true">
+              <circle cx="28" cy="7" r="3.5" fill="var(--coral)" stroke="var(--charcoal)" stroke-width="1.5"/>
+              <path d="M28 10.5 L12 20 M28 10.5 L28 20 M28 10.5 L44 20" fill="none" stroke="var(--charcoal)" stroke-width="1.5"/>
+              <rect x="6" y="20" width="12" height="10" fill="var(--coral)" stroke="var(--charcoal)" stroke-width="1.5"/>
+              <rect x="22" y="20" width="12" height="10" fill="var(--sand)" stroke="var(--charcoal)" stroke-width="1.5"/>
+              <rect x="38" y="20" width="12" height="10" fill="var(--coral)" stroke="var(--charcoal)" stroke-width="1.5"/>
+            </svg>
+            <span class="period-when">2000s</span>
+            <span class="period-name">Computational and generative architecture</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="era-node" aria-expanded="false" aria-controls="era-8">
+            <svg class="era-mark" viewBox="0 0 56 36" aria-hidden="true">
+              <circle cx="44" cy="8" r="5" fill="var(--sunflower)" stroke="var(--charcoal)" stroke-width="1.5"/>
+              <path d="M6 16 Q20 11 34 16" fill="none" stroke="var(--sky)" stroke-width="1.5" stroke-linecap="round"/>
+              <polygon points="8,32 20,14 32,32" fill="var(--terracotta)" stroke="var(--charcoal)" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+            <span class="period-when">2010s</span>
+            <span class="period-name">Algorithmic and performance-driven design</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="era-node" aria-expanded="false" aria-controls="era-9">
+            <svg class="era-mark" viewBox="0 0 56 36" aria-hidden="true">
+              <path d="M12 10 L28 6 L46 14 L38 28 L14 26 Z" fill="none" stroke="var(--charcoal)" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M12 10 L14 26 M46 14 L38 28" fill="none" stroke="var(--charcoal)" stroke-width="1.5"/>
+              <circle cx="12" cy="10" r="3.5" fill="var(--coral)" stroke="var(--charcoal)" stroke-width="1.5"/>
+              <circle cx="28" cy="6" r="3.5" fill="var(--coral)" stroke="var(--charcoal)" stroke-width="1.5"/>
+              <circle cx="46" cy="14" r="3.5" fill="var(--terracotta)" stroke="var(--charcoal)" stroke-width="1.5"/>
+              <circle cx="38" cy="28" r="3.5" fill="var(--terracotta)" stroke="var(--charcoal)" stroke-width="1.5"/>
+              <circle cx="14" cy="26" r="3.5" fill="var(--sunflower)" stroke="var(--charcoal)" stroke-width="1.5"/>
+            </svg>
+            <span class="period-when">2020s–present</span>
+            <span class="period-name">AI and intelligent generative design</span>
+          </button>
+        </li>
+      </ol>
+    </div>
+    <div class="era-panels">
+      <div id="era-1" class="era-panel" hidden>
         <p>Proportion, symmetry, geometry, and repetition organize space and form.</p>
-        <details>
-          <summary>Milestones</summary>
-          <ul>
-            <li>Mathematical proportion and symmetry are used to set out architecture.</li>
-          </ul>
-          <p class="period-keys">Geometry · Proportion · Symmetry</p>
-        </details>
-      </li>
-      <li class="period">
-        <p class="period-when">1880s–1920s</p>
-        <h3>Organic and natural systems</h3>
+        <p class="era-label">Milestones</p>
+        <ul>
+          <li>Mathematical proportion and symmetry are used to set out architecture.</li>
+        </ul>
+        <p class="period-keys">Geometry · Proportion · Symmetry</p>
+      </div>
+      <div id="era-2" class="era-panel" hidden>
         <p>Natural geometry and structural experiment inform the form.</p>
-        <details>
-          <summary>Milestones</summary>
-          <ul>
-            <li>Antoni Gaudí explores catenary arches and forms drawn from nature.</li>
-          </ul>
-          <p class="period-keys">Nature · Structural logic · Organic forms</p>
-        </details>
-      </li>
-      <li class="period">
-        <p class="period-when">1940s–1950s</p>
-        <h3>Birth of computational thinking</h3>
+        <p class="era-label">Milestones</p>
+        <ul>
+          <li>Antoni Gaudí explores catenary arches and forms drawn from nature.</li>
+        </ul>
+        <p class="period-keys">Nature · Structural logic · Organic forms</p>
+      </div>
+      <div id="era-3" class="era-panel" hidden>
         <p>Computers open calculation to complex design problems.</p>
-        <details>
-          <summary>Milestones</summary>
-          <ul>
-            <li>Information processing and mathematical calculation become available as design tools.</li>
-          </ul>
-          <p class="period-keys">Computation · Algorithms · Information</p>
-        </details>
-      </li>
-      <li class="period">
-        <p class="period-when">1960s</p>
-        <h3>Computer-aided design</h3>
+        <p class="era-label">Milestones</p>
+        <ul>
+          <li>Information processing and mathematical calculation become available as design tools.</li>
+          <li>1940s. Luigi Moretti introduces the concept of parametric architecture.</li>
+        </ul>
+        <p class="period-keys">Computation · Algorithms · Information</p>
+      </div>
+      <div id="era-4" class="era-panel" hidden>
         <p>Drawing systems move onto the computer.</p>
-        <details>
-          <summary>Milestones</summary>
-          <ul>
-            <li>1963. Ivan Sutherland develops Sketchpad, a milestone in interactive computer graphics.</li>
-          </ul>
-          <p class="period-keys">Digital drawing · Computer graphics · Geometric modeling</p>
-        </details>
-      </li>
-      <li class="period">
-        <p class="period-when">1970s</p>
-        <h3>Form-finding and optimization</h3>
+        <p class="era-label">Milestones</p>
+        <ul>
+          <li>1963. Ivan Sutherland develops Sketchpad, a milestone in interactive computer graphics.</li>
+          <li>1967–1970s. The MIT Architecture Machine Group explores interaction between computers, people, and architectural design.</li>
+        </ul>
+        <p class="period-keys">Digital drawing · Computer graphics · Geometric modeling</p>
+      </div>
+      <div id="era-5" class="era-panel" hidden>
         <p>Simulation and mathematics are used to find efficient structure.</p>
-        <details>
-          <summary>Milestones</summary>
-          <ul>
-            <li>Frei Otto explores minimal surfaces, tensile structures, and natural form-finding.</li>
-          </ul>
-          <p class="period-keys">Optimization · Simulation · Form-finding</p>
-        </details>
-      </li>
-      <li class="period">
-        <p class="period-when">1980s–1990s</p>
-        <h3>Parametric and digital architecture</h3>
+        <p class="era-label">Milestones</p>
+        <ul>
+          <li>Frei Otto explores minimal surfaces, tensile structures, and natural form-finding.</li>
+        </ul>
+        <p class="period-keys">Optimization · Simulation · Form-finding</p>
+      </div>
+      <div id="era-6" class="era-panel" hidden>
         <p>Digital models let a form change when its parameters change.</p>
-        <details>
-          <summary>Milestones</summary>
-          <ul>
-            <li>Parametric thinking connects design variables to complex geometry.</li>
-          </ul>
-          <p class="period-keys">Parametric design · Digital modeling · Complexity</p>
-        </details>
-      </li>
-      <li class="period">
-        <p class="period-when">2000s</p>
-        <h3>Computational and generative architecture</h3>
+        <p class="era-label">Milestones</p>
+        <ul>
+          <li>Parametric thinking connects design variables to complex geometry.</li>
+          <li>1980s. Digital tools transform architectural drafting and modeling.</li>
+          <li>1990s. Evolutionary algorithms explore and optimize design alternatives.</li>
+        </ul>
+        <p class="period-keys">Parametric design · Digital modeling · Complexity</p>
+      </div>
+      <div id="era-7" class="era-panel" hidden>
         <p>Algorithms generate alternatives rather than only recording a chosen form.</p>
-        <details>
-          <summary>Milestones</summary>
-          <ul>
-            <li>Generative systems and digital fabrication become design tools.</li>
-          </ul>
-          <p class="period-keys">Generative systems · Algorithms · Digital fabrication</p>
-        </details>
-      </li>
-      <li class="period">
-        <p class="period-when">2010s</p>
-        <h3>Algorithmic and performance-driven design</h3>
+        <p class="era-label">Milestones</p>
+        <ul>
+          <li>Generative systems and digital fabrication become design tools.</li>
+          <li>2003. Generative Components introduces a visual approach to parametric modeling.</li>
+          <li>2007. Grasshopper makes visual programming and algorithmic design more accessible to architects.</li>
+        </ul>
+        <p class="period-keys">Generative systems · Algorithms · Digital fabrication</p>
+      </div>
+      <div id="era-8" class="era-panel" hidden>
         <p>Generation is tied to environment, structure, material, and making.</p>
-        <details>
-          <summary>Milestones</summary>
-          <ul>
-            <li>Grasshopper makes these computational workflows more accessible.</li>
-          </ul>
-          <p class="period-keys">Performance · Iteration · Optimization · Fabrication</p>
-        </details>
-      </li>
-      <li class="period">
-        <p class="period-when">2020s–present</p>
-        <h3>AI and intelligent generative design</h3>
+        <p class="era-label">Milestones</p>
+        <ul>
+          <li>Computational optimization integrates structural, environmental, and material performance into design generation.</li>
+          <li>2014. Generative adversarial networks (GANs) advance machine-generated visual content and create new possibilities for design exploration.</li>
+        </ul>
+        <p class="period-keys">Performance · Iteration · Optimization · Fabrication</p>
+      </div>
+      <div id="era-9" class="era-panel" hidden>
         <p>Machine learning helps generate and evaluate architectural possibilities.</p>
-        <details>
-          <summary>Milestones</summary>
-          <ul>
-            <li>Prompts, datasets, simulations, and performance criteria are used with generative models.</li>
-          </ul>
-          <p class="period-keys">Artificial intelligence · Machine learning · Data-driven design · Human–AI collaboration</p>
-        </details>
-      </li>
-    </ol>
+        <p class="era-label">Milestones</p>
+        <ul>
+          <li>Prompts, datasets, simulations, and performance criteria are used with generative models.</li>
+          <li>Generative AI introduces text-to-image generation and AI-assisted architectural workflows.</li>
+        </ul>
+        <p class="period-keys">Artificial intelligence · Machine learning · Data-driven design · Human–AI collaboration</p>
+      </div>
+    </div>
   </section>
 
   <footer>
     <section>
-      <h2>Decided before you arrive</h2>
+      <h2>Decided Before You Arrive</h2>
       <ul>
         <li>One hundred and seventy agents. The count is a choice, not a finding.</li>
         <li>Each study keeps its own neighbourhood. In the experiment, the three forms sit together, and each slider changes the size of one of them. Symmetry, only in that window, mirrors those forms across the centre of the signature and keeps the original joined to its reflection. The speed control only changes how fast you watch the drawing.</li>
@@ -367,10 +460,69 @@
       </ul>
     </section>
     <section class="research">
-      <h2>Where the rules come from</h2>
-      <p>Craig Reynolds, “Flocks, Herds, and Schools: A Distributed Behavioral Model,” <cite>Computer Graphics</cite> 21, no. 4 (SIGGRAPH, 1987). Cohesion, separation, and alignment are his three steering behaviors. The names attraction, repulsion, and mimicry are the course’s names for the same three. The signature field is ours: a local pull toward the stroke, and a local copy of its direction. It is not a model of a flock in the wild, and it is not a mold of your name.</p>
+      <h2>Where the Rules Come From</h2>
+      <article>
+        <h3>Craig W. Reynolds</h3>
+        <p class="source">Collective behaviour</p>
+        <p>Reynolds demonstrates how coordinated movement emerges from individuals responding to their neighbours through collision avoidance, velocity matching, and flock centering. These behaviours provide the foundation for our three studies: separation, alignment, and cohesion.</p>
+      </article>
+      <article>
+        <h3>Philip Ball</h3>
+        <p class="source">Patterns through local interaction</p>
+        <p>In “Pattern Formation in Nature,” Ball explains how complex patterns emerge from simple interactions among many parts. Our project draws on this principle by allowing local behaviours to produce an overall form that no single agent controls.</p>
+      </article>
+      <article>
+        <h3>Philip Ball</h3>
+        <p class="source">Bubbles, boundaries, and shared surfaces</p>
+        <p>In “Bubbles,” Ball explores how surface tension and physical boundaries shape soap films and foams. These examples inform our interest in rounded volumes and connected surfaces, where form emerges through relationships between neighbouring parts.</p>
+      </article>
+      <article>
+        <h3>Sanford Kwinter</h3>
+        <p class="source">Form as an unfolding process</p>
+        <p>Kwinter describes form as something that develops through interacting rhythms, movements, and environmental conditions. Our project interprets this through a signature that continues to change as computational behaviours act upon it.</p>
+      </article>
+      <article>
+        <h3>Achim Menges</h3>
+        <p class="source">Designing processes that generate form</p>
+        <p>Menges explores how computational design can draw on natural processes to generate architectural possibilities. This supports our approach of establishing rules and relationships through which forms develop, rather than specifying every part of the final object.</p>
+      </article>
+      <article>
+        <h3>Nicholas Negroponte</h3>
+        <p class="source">The ambiguity of authorship</p>
+        <p>Negroponte questions who authors a result when a machine participates in finding its own solution. This is central to Out of Our Hands: the designer establishes the rules, the participant supplies the gesture, and the system helps determine the outcome.</p>
+      </article>
+      <article>
+        <h3>Jeroen van Ameijde</h3>
+        <p class="source">Participation and feedback</p>
+        <p>Van Ameijde revisits Negroponte’s architecture machines to explore participatory, data-driven design. The precedent of SEEK highlights how a system’s arrangement can change through exchanges between its inhabitants and computational responses. Our project draws on this relationship between participation, feedback, and emergent outcomes.</p>
+      </article>
+      <article>
+        <h3>Michael Weinstock</h3>
+        <p class="source">Material, structure, and form</p>
+        <p>Weinstock examines cellular biological materials whose internal organisation connects material properties, structure, and geometry. His discussion of foam-like systems informs our exploration of porous forms and interconnected volumes.</p>
+      </article>
+      <article>
+        <h3>Michael Weinstock and Nikolaos Stathopoulos</h3>
+        <p class="source">Simulation as a design method</p>
+        <p>Weinstock and Stathopoulos explain how simulations help designers investigate material systems under changing conditions. Our app uses a simplified behavioural model to explore how different rules produce different forms; it is a design experiment rather than a physical performance simulation.</p>
+      </article>
     </section>
   </footer>
+
+  <section class="citations" aria-labelledby="citations-title">
+      <h2 id="citations-title">Citations</h2>
+      <ol class="bibliography">
+        <li>Ball, Philip. “Bubbles.” In <em>The Self-Made Tapestry: Pattern Formation in Nature</em>, 17–49. Oxford: Oxford University Press, 1998. <a href="https://academic.oup.com/book/55035">https://academic.oup.com/book/55035</a>.</li>
+        <li><span class="visually-hidden">Ball, Philip. </span><span aria-hidden="true">———. </span>“Pattern Formation in Nature: Physical Constraints and Self-Organising Characteristics.” <em>Architectural Design</em> 82, no. 2 (2012): 22–27. <a href="https://doi.org/10.1002/ad.1375">https://doi.org/10.1002/ad.1375</a>.</li>
+        <li>Kwinter, Sanford. “African Genesis (A Presentation).” <em>Assemblage</em>, no. 36 (1998): 24–41. <a href="https://roy-projects.com/wp-content/uploads/2023/08/Kwinter_African-Genesis_Assemblage-36.pdf">https://roy-projects.com/wp-content/uploads/2023/08/Kwinter_African-Genesis_Assemblage-36.pdf</a>.</li>
+        <li>Menges, Achim. “Biomimetic Design Processes in Architecture: Morphogenetic and Evolutionary Computational Design.” <em>Bioinspiration &amp; Biomimetics</em> 7, no. 1 (2012): 015003. <a href="https://doi.org/10.1088/1748-3182/7/1/015003">https://doi.org/10.1088/1748-3182/7/1/015003</a>.</li>
+        <li>Negroponte, Nicholas. “Toward a Theory of Architecture Machines.” <em>Journal of Architectural Education</em> 23, no. 2 (1969): 9–12. <a href="https://www.jstor.org/stable/1423828">https://www.jstor.org/stable/1423828</a>.</li>
+        <li>Reynolds, Craig W. “Flocks, Herds, and Schools: A Distributed Behavioral Model.” <em>ACM SIGGRAPH Computer Graphics</em> 21, no. 4 (1987): 25–34. <a href="https://doi.org/10.1145/37402.37406">https://doi.org/10.1145/37402.37406</a>.</li>
+        <li>van Ameijde, Jeroen. “Data-driven Urban Design: Conceptual and Methodological Interpretations of Negroponte’s ‘Architecture Machine.’” <em>SPOOL</em> 9, no. 1 (2022): 35–48. <a href="https://doi.org/10.47982/spool.2022.1.03">https://doi.org/10.47982/spool.2022.1.03</a>.</li>
+        <li>Weinstock, Michael. “Self-organisation and Material Constructions.” <em>Architectural Design</em> 76, no. 2 (2006): 34–41. <a href="https://doi.org/10.1002/ad.238">https://doi.org/10.1002/ad.238</a>.</li>
+        <li>Weinstock, Michael, and Nikolaos Stathopoulos. “Advanced Simulation in Design.” <em>Architectural Design</em> 76, no. 2 (2006): 54–59. <a href="https://doi.org/10.1002/ad.240">https://doi.org/10.1002/ad.240</a>.</li>
+      </ol>
+  </section>
 
   <script type="importmap">
     {
@@ -379,6 +531,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js?v=turns46"></script>
+  <script type="module" src="app.js?v=turns49"></script>
 </body>
 </html>
