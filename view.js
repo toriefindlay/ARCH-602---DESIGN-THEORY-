@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "./vendor/OrbitControls.js";
+import { STLExporter } from "./vendor/STLExporter.js";
 import { FRAME_RADIUS, advanceField, getModifiers, maxTubeRadius, reactionSample, separationTubeRadius, stepFlock, trailLook } from "./sim.js?v=turns45";
 import { PALETTE, markOn } from "./palette.js?v=palette";
 
@@ -1576,6 +1577,168 @@ export function createView(canvas, { autoRotate = false, onTrailLimit = null } =
 
   let mirrorOf = null;
 
+  const solidVertex = new THREE.Vector3();
+  const solidInstance = new THREE.Matrix4();
+  const solidPlaced = new THREE.Matrix4();
+  const solidWorld = new THREE.Matrix4();
+  const solidScale = new THREE.Matrix4();
+
+  function matrixWithin(child, ancestor, target) {
+    target.identity();
+    const chain = [];
+    let node = child;
+    while (node && node !== ancestor) {
+      chain.push(node);
+      node = node.parent;
+    }
+    for (let i = chain.length - 1; i >= 0; i--) {
+      if (chain[i].matrixAutoUpdate) chain[i].updateMatrix();
+      target.multiply(chain[i].matrix);
+    }
+    return target;
+  }
+
+  function collectSolid(group, scale, mirror, out) {
+    solidScale.makeScale(scale, scale, scale);
+    group.traverse((child) => {
+      if (!child.isMesh || child.visible === false || !child.geometry) return;
+      const position = child.geometry.getAttribute("position");
+      if (!position) return;
+      const index = child.geometry.index;
+      const tapered = child.isInstancedMesh && child.geometry.getAttribute("radius0");
+      const radius0Attr = tapered ? child.geometry.getAttribute("radius0") : null;
+      const radius1Attr = tapered ? child.geometry.getAttribute("radius1") : null;
+      const extend0Attr = tapered ? child.geometry.getAttribute("extend0") : null;
+      const extend1Attr = tapered ? child.geometry.getAttribute("extend1") : null;
+      const copies = child.isInstancedMesh ? child.count : 1;
+      for (let n = 0; n < copies; n++) {
+        if (child.isInstancedMesh) child.getMatrixAt(n, solidInstance);
+        else solidInstance.identity();
+        matrixWithin(child, group, solidPlaced);
+        solidWorld.multiplyMatrices(solidPlaced, solidInstance);
+        solidWorld.premultiply(solidScale);
+        if (mirror) solidWorld.premultiply(mirror);
+        const radius0 = tapered ? radius0Attr.getX(n) : 0;
+        const radius1 = tapered ? radius1Attr.getX(n) : 0;
+        const extend0 = tapered ? extend0Attr.getX(n) : 0;
+        const extend1 = tapered ? extend1Attr.getX(n) : 0;
+        const push = (vertexIndex) => {
+          solidVertex.fromBufferAttribute(position, vertexIndex);
+          if (tapered) {
+            const y = solidVertex.y;
+            const tubeRadius = radius0 + (radius1 - radius0) * (y + 0.5);
+            const tubeShift = y < 0 ? -extend0 : extend1;
+            solidVertex.x *= tubeRadius;
+            solidVertex.y = y + tubeShift;
+            solidVertex.z *= tubeRadius;
+          }
+          solidVertex.applyMatrix4(solidWorld);
+          if (!Number.isFinite(solidVertex.x) || !Number.isFinite(solidVertex.y) || !Number.isFinite(solidVertex.z)) return false;
+          out.push(solidVertex.x, solidVertex.y, solidVertex.z);
+          return true;
+        };
+        if (index) {
+          for (let j = 0; j < index.count; j += 3) {
+            const before = out.length;
+            const kept = push(index.getX(j)) && push(index.getX(j + 1)) && push(index.getX(j + 2));
+            if (!kept) out.length = before;
+          }
+        } else {
+          for (let j = 0; j < position.count; j += 3) {
+            const before = out.length;
+            const kept = push(j) && push(j + 1) && push(j + 2);
+            if (!kept) out.length = before;
+          }
+        }
+      }
+    });
+  }
+
+  function inspectSolid(raw) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let minZ = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    let maxZ = -Infinity;
+    for (let i = 0; i < raw.length; i += 3) {
+      const x = raw[i];
+      const y = raw[i + 1];
+      const z = raw[i + 2];
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (z < minZ) minZ = z;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+      if (z > maxZ) maxZ = z;
+    }
+    const longest = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
+    const eps = Math.max(longest * 1e-5, 1e-7);
+    const quant = (value) => Math.round(value / eps);
+    const ids = new Map();
+    const parent = [];
+    function weld(x, y, z) {
+      const key = `${quant(x)},${quant(y)},${quant(z)}`;
+      let id = ids.get(key);
+      if (id === undefined) {
+        id = parent.length;
+        parent.push(id);
+        ids.set(key, id);
+      }
+      return id;
+    }
+    function find(id) {
+      let root = id;
+      while (parent[root] !== root) root = parent[root];
+      while (parent[id] !== root) {
+        const next = parent[id];
+        parent[id] = root;
+        id = next;
+      }
+      return root;
+    }
+    function unite(a, b) {
+      const ra = find(a);
+      const rb = find(b);
+      if (ra !== rb) parent[rb] = ra;
+    }
+    const edges = new Map();
+    const touch = (a, b) => {
+      const key = a < b ? `${a}:${b}` : `${b}:${a}`;
+      edges.set(key, (edges.get(key) || 0) + 1);
+    };
+    const used = new Set();
+    let triangles = 0;
+    for (let i = 0; i < raw.length; i += 9) {
+      const a = weld(raw[i], raw[i + 1], raw[i + 2]);
+      const b = weld(raw[i + 3], raw[i + 4], raw[i + 5]);
+      const c = weld(raw[i + 6], raw[i + 7], raw[i + 8]);
+      triangles += 1;
+      if (a === b || b === c || c === a) continue;
+      unite(a, b);
+      unite(b, c);
+      touch(a, b);
+      touch(b, c);
+      touch(c, a);
+      used.add(a);
+      used.add(b);
+      used.add(c);
+    }
+    const roots = new Set();
+    for (const id of used) roots.add(find(id));
+    let openEdges = 0;
+    for (const count of edges.values()) {
+      if (count === 1) openEdges += 1;
+    }
+    return {
+      triangles,
+      longest,
+      center: [(minX + maxX) * 0.5, (minY + maxY) * 0.5, (minZ + maxZ) * 0.5],
+      openEdges,
+      parts: roots.size,
+    };
+  }
+
   const view = {
     scene,
     sculpture,
@@ -1594,6 +1757,47 @@ export function createView(canvas, { autoRotate = false, onTrailLimit = null } =
       showMirror = Boolean(on);
       shownReach = mirrorReach();
       placeCamera(false);
+    },
+    exportStl(millimetres) {
+      const raw = [];
+      const sources = mirrorOf ? mirrorOf() || [] : [];
+      const plane = showMirror ? currentPlane() : null;
+      for (let i = 0; i < sources.length; i++) {
+        const source = sources[i];
+        const scale = Math.max(0, Number(source.scale) || 0);
+        if (!(scale > 0) || !source.view || !source.view.sculpture) continue;
+        collectSolid(source.view.sculpture, scale, null, raw);
+        if (plane) {
+          writeReflection(plane, scale, reflection);
+          collectSolid(source.view.sculpture, scale, reflection, raw);
+        }
+      }
+      if (raw.length < 9) return null;
+      const info = inspectSolid(raw);
+      if (!(info.longest > 0)) return null;
+      const size = Math.max(1, Number(millimetres) || 100);
+      const factor = size / info.longest;
+      const scaled = new Float32Array(raw.length);
+      const cx = info.center[0];
+      const cy = info.center[1];
+      const cz = info.center[2];
+      for (let i = 0; i < raw.length; i += 3) {
+        scaled[i] = (raw[i] - cx) * factor;
+        scaled[i + 1] = (raw[i + 1] - cy) * factor;
+        scaled[i + 2] = (raw[i + 2] - cz) * factor;
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(scaled, 3));
+      const mesh = new THREE.Mesh(geometry);
+      const data = new STLExporter().parse(mesh, { binary: true });
+      geometry.dispose();
+      return {
+        data,
+        millimetres: size,
+        triangles: info.triangles,
+        openEdges: info.openEdges,
+        parts: info.parts,
+      };
     },
     step() {
       if (!state.flock || playback.paused) return;

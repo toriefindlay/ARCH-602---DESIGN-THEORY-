@@ -1,5 +1,5 @@
 import { STUDIES, neighborhoodRadius, readSignature, createFlock, resetField, setModifiers, publishNodes } from "./sim.js?v=turns45";
-import { createView, setPlayback, setSculptureColour } from "./view.js?v=turns46";
+import { createView, setPlayback, setSculptureColour } from "./view.js?v=turns47";
 import { PALETTE, applyPalette } from "./palette.js?v=palette";
 
 applyPalette();
@@ -369,6 +369,46 @@ for (const slider of document.querySelectorAll("[data-strength]")) {
     modifierTimer = window.setTimeout(() => paintModifier({ restart: true }), 160);
   });
 }
+const printSize = document.querySelector("#print-size");
+const downloadStl = document.querySelector("#download-stl");
+const stlNote = document.querySelector("#stl-note");
+
+function describeStl(report) {
+  const sentences = [
+    `Saved out-of-our-hands.stl. The longest side is ${report.millimetres} mm.`,
+  ];
+  if (report.openEdges > 0) {
+    sentences.push(`Open surfaces: ${report.openEdges.toLocaleString()} boundary edges, so the shell is not closed.`);
+  } else {
+    sentences.push("No open surfaces.");
+  }
+  if (report.parts > 1) {
+    sentences.push(`Disconnected parts: ${report.parts.toLocaleString()} separate pieces. They were left unjoined.`);
+  } else if (report.parts === 1) {
+    sentences.push("The export is one connected piece.");
+  }
+  return sentences.join(" ");
+}
+
+downloadStl.addEventListener("click", () => {
+  const millimetres = Math.max(1, Number(printSize.value) || 100);
+  printSize.value = String(millimetres);
+  const report = views.experiment.exportStl(millimetres);
+  stlNote.hidden = false;
+  if (!report) {
+    stlNote.textContent = "Nothing to export yet. Run the rules so the experiment has a form.";
+    return;
+  }
+  const blob = new Blob([report.data], { type: "model/stl" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "out-of-our-hands.stl";
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+  stlNote.textContent = describeStl(report);
+});
+
 symmetryButton.addEventListener("click", () => {
   const on = symmetryButton.getAttribute("aria-pressed") !== "true";
   symmetryButton.setAttribute("aria-pressed", on ? "true" : "false");

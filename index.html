@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=turns81">
+  <link rel="stylesheet" href="style.css?v=turns82">
 </head>
 <body>
   <header>
@@ -250,6 +250,14 @@
       </label>
       <button id="symmetry" type="button" aria-pressed="false">Symmetry</button>
       <button id="another" type="button">Another beginning</button>
+    </div>
+    <div class="print-export">
+      <label class="print-size">
+        <span>Print size (mm)</span>
+        <input id="print-size" type="number" min="1" step="1" value="100" aria-label="Print size in millimetres, the longest side of the object">
+      </label>
+      <button id="download-stl" type="button">Download STL</button>
+      <p id="stl-note" class="note" hidden aria-live="polite"></p>
     </div>
     <p class="trail-note" id="trail-experiment" hidden>Drawing limit reached. These agents keep moving without adding tubes.</p>
     <p class="note">Bring the three studies together to create your own composition. Use the sliders to adjust the size of each form, and turn on Symmetry to join it with its mirror image. Your changes here leave the studies above unchanged.</p>
@@ -555,6 +563,6 @@
       }
     }
   </script>
-  <script type="module" src="app.js?v=turns50"></script>
+  <script type="module" src="app.js?v=turns51"></script>
 </body>
 </html>

@@ -741,6 +741,35 @@ article p:last-child {
 
 .controls #symmetry { justify-self: start; }
 
+.print-export {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 22px;
+  margin-top: 18px;
+}
+
+.print-export .print-size {
+  width: min(180px, 100%);
+  margin: 0;
+}
+
+.print-export input[type="number"] {
+  width: 100%;
+  height: 36px;
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--stone);
+  color: var(--charcoal);
+  border: 1px solid var(--charcoal);
+  border-radius: 0;
+}
+
+.print-export .note {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 label span {
   display: flex;
   justify-content: space-between;
